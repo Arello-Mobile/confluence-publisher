@@ -4,11 +4,11 @@ from setuptools import setup
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
-    name='confluence_publisher',
+    name='confluence-publisher',
     version='1.0.0',
     packages=['conf_publisher'],
     include_package_data=True,
-    license='BSD License',
+    license='MIT',
     description='Tool for publishing Sphinx generated documents to Confluence',
     url='https://github.com/Arello-Mobile/confluence-publisher',
     author='Arello Mobile',
@@ -17,7 +17,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',

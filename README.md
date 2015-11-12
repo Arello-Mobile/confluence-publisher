@@ -1,27 +1,20 @@
 Confluence Publisher
 ====================
-
 *Publishes Sphinx compiled docs to Confluence.*
 
 Supports:
-
  - confluence versions: 5.5
  - sphinx-build formats: "json", "json_conf"
-
 
 Installation
 ------------
 
-.. code-block:: bash
-    
     > pip install confluence-publisher
-
 
 Config format
 -------------
 
 Directives:
-
 - **version** (required) Config version. Current is ``2``.
 - **url** (required) Base Confluence URL.
 - **base_dir** (required) Directory containing json to be published.
@@ -29,16 +22,16 @@ Directives:
 
     - **id** (required)  Confluence page ID. If page does not exists, create it with ``conf_page_maker``.
     - **source** (required)  Path to json associated with the page
-    - **watermark** (optional)  Watermark  to put on page. E.g.: *Automatic publish with web documentation toolkit*.
+    - **watermark** (optional)  Watermark  to put on page. E.g.: *Automatically published with web documentation toolkit*.
     - **link** (optional)  Link under watermark (for example to source rst in repo).
     - **attachments** (optional) Files to be attached.
 
         - **images**
-            - <path_to_img1>
-            - <path_to_img2>
+            - path_to_img1
+            - path_to_img2
         - **downloads** 
-            - <path_to_file1>
-            - <path_to_file1>
+            - path_to_file1
+            - path_to_file2
             
     - **pages** Subpages to be published.
 
@@ -46,9 +39,7 @@ Directives:
 
 Config example
 --------------
-
-.. code-block:: yaml
-
+~~~~~~~~~~
   version: 2
   url: https://confluence.atlassian.com
   base_dir: docs/build/json
@@ -88,22 +79,17 @@ Config example
       - 38-aval_2.jpg
     id: 49807851
     source: part_2/availability
-
+~~~~~~~~~~
 
 Publisher
 ---------
 
-.. code-block:: bash
-
     > conf_publisher config.yml --auth XXXXXjpwYXNzdXXXXX==
-
 
 If a config doesn't contain page.id, you can use ``conf_page_maker`` command to create a page and page ID will be put into config automatically.
 
-
 Parameters
 ~~~~~~~~~~
-
 <path_to_config> - Path to your configuration file.
     required
     string
@@ -119,21 +105,16 @@ Parameters
 --disable-watermark (-dw) - Remove watermarks in pages.
     optional
     string
-
+~~~~~~~~~~
 
 Page Maker
 ----------
-
 Creates new pages and puts page ID into configuration file.
-
-.. code-block:: bash
 
     > conf_page_maker config.yml --auth XXXXXjpwYXNzdXXXXX== --parent-id 52332132
 
-
 Parameters
 ~~~~~~~~~~
-
 <path_to_config> - Path to your configuration file (the same as for ``conf_publisher``).
     required
     string
@@ -145,3 +126,4 @@ Parameters
 --parent-id (-pid) - Parent page ID.
     required
     string
+~~~~~~~~~~

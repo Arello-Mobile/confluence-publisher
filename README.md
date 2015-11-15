@@ -1,48 +1,45 @@
 Confluence Publisher
 ====================
+*Publishes Sphinx compiled docs to Confluence.*
 
-Utility publishes Sphinx compiled docs to Confluence
-
-Support:
-
+Supports:
  - confluence versions: 5.5
  - sphinx-build formats: "json", "json_conf"
 
+Installation
+------------
 
-Getting it
-----------
+    > pip install confluence-publisher
 
-pip install confluence-publisher
-
-
-Configuration file format
--------------------------
+Config format
+-------------
 
 Directives:
+- **version** (required) Config version. Current is ``2``.
+- **url** (required) Base Confluence URL.
+- **base_dir** (required) Directory containing json to be published.
+- **pages** (required) Pages to be published.
 
-- version(required)  # Config version. Current is 2
-- url(required)  # Base Confluence URL
-- base_dir(required)  # Folder with json for publishing to Confluence
-- pages(required)  # Pages for publishing
-    - id(required)  # Confluence page ID. If page does not exists, it can make with `conf_page_maker` 
-    - source(required)  # Path to json associated with page
-    - watermark(optional)  # Watermark on confluence page, for example: Automatic publish with web documentation toolkit.
-    - link(optional)  # Link (for example to source rst in repo) under watermark 
-    - attachments(optional)  # attachment files
-        - images  # Page images
-            - <path_to_img>  # Page image path
-            - <path_to_img>
-        - downloads # Downloads
-            - <path_to_file>  # Page file path
-            - <path_to_file>
+    - **id** (required)  Confluence page ID. If page does not exists, create it with ``conf_page_maker``.
+    - **source** (required)  Path to json associated with the page
+    - **watermark** (optional)  Watermark  to put on page. E.g.: *Automatically published with web documentation toolkit*.
+    - **link** (optional)  Link under watermark (for example to source rst in repo).
+    - **attachments** (optional) Files to be attached.
+
+        - **images**
+            - path_to_img1
+            - path_to_img2
+        - **downloads** 
+            - path_to_file1
+            - path_to_file2
             
-    - pages  # Pages for publishing inside current
-        ...
+    - **pages** Subpages to be published.
 
-Example:
+        **...**
 
-```
----
+Config example
+--------------
+~~~~~~~~~~
   version: 2
   url: https://confluence.atlassian.com
   base_dir: docs/build/json
@@ -82,59 +79,51 @@ Example:
       - 38-aval_2.jpg
     id: 49807851
     source: part_2/availability
-```
+~~~~~~~~~~
 
-Publishing
-----------
+Publisher
+---------
 
-```
-conf_publisher config.yml --auth XXXXXjpwYXNzdXXXXX==
-```
+    > conf_publisher config.yml --auth XXXXXjpwYXNzdXXXXX==
 
-If page id is empty in config, use ``conf_page_maker`` for page creating. Page id set to the config automatically.
-
+If a config doesn't contain page.id, you can use ``conf_page_maker`` command to create a page and page ID will be put into config automatically.
 
 Parameters
 ~~~~~~~~~~
-
-
-<path_to_config> - Config path
+<path_to_config> - Path to your configuration file.
     required
     string
     
---auth(-a) - base64 encode confluence login:password
+--auth (-a) - Confluence ``login:password`` encoded with base64.
     required
     string
     
---force(-F) - Publish all pages. Otherwise, publish only changed or new pages.
+--force (-F) - Publish all pages. Otherwise, publishes only changed or new pages.
     optional
     bool
     
---disable-watermark(-dw) - Remove watermark in all pages
+--disable-watermark (-dw) - Remove watermarks in pages.
     optional
     string
-
+~~~~~~~~~~
 
 Page Maker
 ----------
+Creates new pages and puts page ID into configuration file.
 
-Create new pages and set page id to the config 
-
-```
-conf_page_maker config.yml --auth XXXXXjpwYXNzdXXXXX== --parent-id 52332132
-```
+    > conf_page_maker config.yml --auth XXXXXjpwYXNzdXXXXX== --parent-id 52332132
 
 Parameters
 ~~~~~~~~~~
-
-<path_to_config> - Config path (the same for conf_publisher)
+<path_to_config> - Path to your configuration file (the same as for ``conf_publisher``).
     required
     string
     
---auth(-a) - base64 encode confluence login:password
+--auth (-a) - Confluence ``login:password`` encoded with base64.
     required
     string
 
---parent-id(-pid) - parent page id
+--parent-id (-pid) - Parent page ID.
     required
     string
+~~~~~~~~~~

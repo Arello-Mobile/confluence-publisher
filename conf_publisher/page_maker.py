@@ -24,7 +24,8 @@ class PageMaker(object):
         for i, page in enumerate(iterator):
             if page._id is None:
                 page_id = self._publisher.create_blank_page(parent_id, page.title)
-                log.info('Page with id %s has been created. Parent page id: %d' % (page_id, parent_id))
+                log.info('Page with id {page_id} has been created. Parent page id: {parent_id}'
+                         .format(page_id=page_id, parent_id=parent_id))
                 obj[i]['id'] = int(page_id)
             else:
                 page_id = page.id

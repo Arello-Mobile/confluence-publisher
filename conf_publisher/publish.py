@@ -1,4 +1,3 @@
-# coding: utf-8
 import argparse
 import copy
 
@@ -59,7 +58,6 @@ class Publisher(object):
             WatermarkPageMutator(page_config.watermark).add(page)
 
     def publish(self, force=False, watermark=False, hold_titles=False):
-        # publish pages
         pages_to_update = []
         for page_config in flatten_page_config_list(self._config.pages):
             if page_config.id is None:
@@ -76,9 +74,10 @@ class Publisher(object):
             self._add_page_mutators(page, page_config)
             pages_to_update.append(page)
 
+        log.info('Publishing pages...')
         self._publish_pages(pages_to_update)
 
-        # publish attachements
+        log.info('Publishing attachments...')
         for page_config in flatten_page_config_list(self._config.pages):
             attachments = self._page_attachments(page_config.images, page_config.downloads)
             self._publish_page_attachments(page_config.id, attachments)
@@ -89,9 +88,7 @@ class Publisher(object):
 
     def _publish_page(self, page):
         log.info('Publishing page: id: %s' % page.id)
-
         content_id = self._page_manager.update(page)
-
         log.info('Published to: %s' % content_id)
 
     def _publish_page_attachments(self, content_id, attachments):

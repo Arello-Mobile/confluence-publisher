@@ -1,167 +1,208 @@
-import os
-import json
-import yaml
+import copy
+from collections import OrderedDict
 
-from .constants import DEFAULT_WATERMARK_CONTENT
 from .errors import ConfigError
+from .serializers import yaml_serializer
 
 
 class Config(object):
-    """
-    This class provides storage, validation and conversion `config object` data.
-    """
+    def __init__(self):
+        self.url = None
+        self.base_dir = None
+        self.downloads_dir = None
+        self.images_dir = None
+        self.source_ext = None
+        self.pages = list()
 
-    def __getattr__(self, key):
-        return self._config.get(key)
+    def __eq__(self, other):
+        first = copy.copy(self.__dict__)
+        del first['pages']
 
-    def __setattr__(self, key, value):
-        self._config[key] = value
+        second = copy.copy(other.__dict__)
+        del second['pages']
 
-    def __init__(self, config_path):
-        self.__dict__['config_path'] = config_path
-        with open(config_path, 'rb') as config:
-            self.__dict__['_config'] = yaml.load(config)
+        if len(self.pages) != len(other.pages):
+            return False
 
-        # Check config version
-        if 'version' not in self._config:
+        for first_page, second_page in zip(self.pages, other.pages):
+            if not (first_page == second_page):
+                return False
+
+        return first == second
+
+
+class PageConfig(object):
+    def __init__(self):
+        self.id = None
+
+        self.title = None
+        self.source = None
+        self.link = None
+        self.watermark = None
+
+        self.images = list()
+        self.downloads = list()
+
+        self.pages = list()
+
+    def __eq__(self, other):
+        first = copy.copy(self.__dict__)
+        del first['images']
+        del first['downloads']
+
+        second = copy.copy(other.__dict__)
+        del second['images']
+        del second['downloads']
+
+        if len(self.images) != len(other.images):
+            return False
+
+        if len(self.downloads) != len(other.downloads):
+            return False
+
+        for first_attach, second_attach in zip(self.images, other.images):
+            if not (first_attach == second_attach):
+                return False
+
+        for first_attach, second_attach in zip(self.downloads, other.downloads):
+            if not (first_attach == second_attach):
+                return False
+
+        return first == second
+
+
+class PageAattachmentConfig(object):
+    def __init__(self):
+        self.path = None
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
+
+class ConfigLoader:
+
+    @classmethod
+    def from_yaml(cls, config_path):
+        with open(config_path, 'rb') as f:
+            config = yaml_serializer.load(f)
+        return cls.from_dict(config)
+
+    @classmethod
+    def from_dict(cls, config_dict):
+        if 'version' not in config_dict:
             raise ConfigError('`version` param is required')
 
-        if self._config['version'] != 2:
+        if config_dict['version'] != 2:
             raise ConfigError('invalid config version. required: 2')
 
-        if 'pages' not in self._config:
-            raise ConfigError('`pages` param is required')
+        config = Config()
 
-    def get_config(self):
-        return yaml.dump(self._config, default_flow_style=False)
+        for attr in ('url', 'base_dir', 'downloads_dir', 'images_dir', 'source_ext'):
+            if attr in config_dict:
+                setattr(config, attr, config_dict[attr])
 
-    def update_config(self):
-        with open(self.config_path, 'w') as f_config:
-            f_config.write(self.get_config())
+        config.pages = cls._pages_from_list(config_dict.get('pages', list()))
 
-    @property
-    def pages_iter(self):
-        provider = DataProvider(self._config,  os.path.dirname(self.config_path))
-        for page in self._config['pages']:
-            yield Page(page, provider)
+        return config
 
+    @classmethod
+    def _pages_from_list(cls, pages_list):
+        pages = list()
+        for page_dict in pages_list:
+            pages.append(cls._page_from_dict(page_dict))
+        return pages
 
-class Page(object):
-    """
-    This class provides storage, validation and conversion `page object` data.
-    """
+    @classmethod
+    def _page_from_dict(cls, page_dict):
+        page_config = PageConfig()
 
-    watermark_template = '<p style="text-align: right;">' \
-                         '<span style="color: rgb(153,153,153);">{watermark_content}</span>' \
-                         '</p>'
-    link_template = '<p style="text-align: right;">' \
-                    '<a href="{link}" _blank="true">{link}</a>' \
-                    '</p>'
+        for attr in ('id', 'title', 'source', 'link', 'watermark'):
+            if attr in page_dict:
+                setattr(page_config, attr, page_dict[attr])
 
-    def __init__(self, page, provider):
-        self._id = page.get('id')
-        self._link = page.get('link')
-        self._pages = page.get('pages', list())
-        self._watermark_content = page.get('watermark', DEFAULT_WATERMARK_CONTENT)
+        if 'attachments' in page_dict:
+            for path in page_dict['attachments'].get('images', list()):
+                page_config.images.append(cls._attach_from_path(path))
+            for path in page_dict['attachments'].get('downloads', list()):
+                page_config.downloads.append(cls._attach_from_path(path))
 
-        self._provider = provider
+        page_config.pages = cls._pages_from_list(page_dict.get('pages', list()))
 
-        source_filename, self._attachments = self._parse_page(page)
-        self._title, self._body = provider.get_source_data(source_filename)
-
-    def _parse_page(self, page):
-        if 'source' not in page:
-            raise KeyError('source not found')
-
-        source_filename = self._provider.get_source(page['source'])
-
-        atachments = page.get('attachments', dict())
-        images = atachments.get('images', list())
-        downloads = atachments.get('downloads', list())
-
-        images_filenames = [self._provider.get_image(image) for image in images]
-        downloads_filenames = [self._provider.get_attachment(download) for download in downloads]
-
-        attachment_filenames = images_filenames + downloads_filenames
-
-        return source_filename, attachment_filenames
-
-    def inject_watermark(self):
-        watermark = self.watermark_template.format(watermark_content=self._watermark_content)
-        if self._link is not None:
-            watermark += self.link_template.format(link=self._link)
-
-        self._body = watermark + self._body
-
-    def pages_iter(self):
-        for page in self._pages:
-            yield Page(page, self._provider)
-
-    @property
-    def attachments(self):
-        return self._attachments
-
-    @property
-    def title(self):
-        return self._title
-
-    @property
-    def body(self):
-        return self._body
-
-    @property
-    def id(self):
-        if self._id is None:
-            raise AttributeError('Page id not in the configuration file. If pages not created, '
-                                 'you may make this with "conf_page_maker" command')
-        return self._id
-
-    @property
-    def pages(self):
-        return self.pages_iter()
-
-
-class DataProvider(object):
-    def __init__(self, config, root='./'):
-        if config is None:
-            config = dict()
-
-        self._root_dir = os.path.abspath(root)
-
-        self._source_dir = config.get('base_dir', 'docs/build/json')
-        if not os.path.isabs(self._source_dir):
-            self._source_dir = os.path.join(self._root_dir, self._source_dir)
-
-        self._downloads_dir = config.get('downloads_dir', '_downloads')
-        if not os.path.isabs(self._downloads_dir):
-            self._downloads_dir = os.path.join(self._source_dir, self._downloads_dir)
-
-        self._images_dir = config.get('images_dir', '_images')
-        if not os.path.isabs(self._images_dir):
-            self._images_dir = os.path.join(self._source_dir, self._images_dir)
-
-        self._source_ext = config.get('source_ext', '.fjson')
-
-    def get_source(self, filename):
-        return os.path.join(self._source_dir, filename + self._source_ext)
+        return page_config
 
     @staticmethod
-    def get_source_data(filename):
-        with open(filename, 'r') as f:
-            content = json.load(f)
+    def _attach_from_path(attach_path):
+        attach = PageAattachmentConfig()
+        attach.path = attach_path
+        return attach
 
-        return content['title'], content['body']
 
-    def get_image(self, filename):
-        return os.path.join(self._images_dir, filename)
+class ConfigDumper:
+    @classmethod
+    def to_yaml_file(cls, config, config_path):
+        with open(config_path, 'w') as f:
+            cls.to_yaml_string(config, stream=f)
 
-    def get_image_stream(self, filename):
-        # TODO:
-        pass
+    @classmethod
+    def to_yaml_string(cls, config, stream=None):
+        return yaml_serializer.dump(cls.to_dict(config), stream=stream)
 
-    def get_attachment(self, filename):
-        return os.path.join(self._downloads_dir, filename)
+    @classmethod
+    def to_dict(cls, config):
+        config_dict = OrderedDict(version=2)
 
-    def get_attachment_stream(self, filename):
-        # TODO:
-        pass
+        for attr in ('url', 'base_dir', 'downloads_dir', 'images_dir', 'source_ext'):
+            attr_value = getattr(config, attr)
+            if attr_value:
+                config_dict[attr] = attr_value
+
+        config_dict['pages'] = cls._pages_to_list(config.pages)
+
+        return config_dict
+
+    @classmethod
+    def _pages_to_list(cls, pages_config):
+        pages = list()
+        for page_config in pages_config:
+            pages.append(cls._page_to_dict(page_config))
+        return pages
+
+    @classmethod
+    def _page_to_dict(cls, page_config):
+        page_dict = OrderedDict()
+
+        for attr in ('id', 'title', 'source', 'link', 'watermark'):
+            attr_value = getattr(page_config, attr)
+            if attr_value:
+                page_dict[attr] = attr_value
+
+        if len(page_config.images) + len(page_config.downloads):
+            page_dict['attachments'] = OrderedDict()
+        if len(page_config.images):
+            page_dict['attachments']['images'] = cls._attaches_to_path(page_config.images)
+        if len(page_config.images):
+            page_dict['attachments']['downloads'] = cls._attaches_to_path(page_config.downloads)
+
+        pages = cls._pages_to_list(page_config.pages)
+        if len(pages):
+            page_dict['pages'] = pages
+
+        return page_dict
+
+    @classmethod
+    def _attaches_to_path(cls, attaches):
+        attaches_list = []
+        for attach_config in attaches:
+            attaches_list.append(cls._attach_to_path(attach_config))
+        return attaches_list
+
+    @staticmethod
+    def _attach_to_path(attach_config):
+        return attach_config.path
+
+
+def flatten_page_config_list(pages):
+    for page in pages:
+        yield page
+        for subpage in flatten_page_config_list(page.pages):
+            yield subpage

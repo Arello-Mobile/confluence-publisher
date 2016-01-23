@@ -1,72 +1,98 @@
 # coding: utf-8
 import argparse
+import copy
 
-from . import log
+from . import log, setup_logger
 from .confluence_api import create_confluence_api
-from .publishers import PagePublisher, AttachmentPublisher
-from .config import Config
-from .confluence_pages import PageManager
-from .constants import DEFAULT_CONFLUENCE_API_VERSION
+from .confluence import ConfluencePageManager, AttachmentPublisher
+from .config import ConfigLoader, flatten_page_config_list
+from .constants import DEFAULT_CONFLUENCE_API_VERSION, DEFAULT_WATERMARK_CONTENT
+from .data_providers.sphinx_fjson_data_provider import SphinxFJsonDataProvider
+from .mutators.page_mutator import WatermarkPageMutator, LinkPageMutator
+
+
+def create_publisher(config, confluence_api):
+    page_manager = ConfluencePageManager(confluence_api)
+    attachment_publisher = AttachmentPublisher(confluence_api)
+    data_provider = SphinxFJsonDataProvider(base_dir=config.base_dir, downloads_dir=config.downloads_dir,
+                                            images_dir=config.images_dir, source_ext=config.source_ext)
+
+    return Publisher(config, data_provider, page_manager, attachment_publisher)
 
 
 class Publisher(object):
-    def __init__(self, config, page_publisher, attachment_publisher):
-
+    def __init__(self, config, data_provider, page_manager, attachment_manager):
         self._config = config
-        self._page_publisher = page_publisher
-        self._attachment_publisher = attachment_publisher
-
-    def publish(self, page_manager, force=False, disable_watermark=False):
-        # Load Pages
-        pages = self._load_pages(self._config.pages_iter)
-
-        # Inject watermark
-        if not disable_watermark:
-            self._inject_watermark(pages)
-
-        # Filter page for change
-        if not force:
-            def filter_changed(page):
-                return page_manager.check_diff(page.id, page.body)
-            pages = filter(filter_changed, pages)
-
-        #  Publish pages
-        self._publish_pages(pages)
-
-    def _load_pages(self, pages):
-        pages_list = list()
-        for page in pages:
-            pages_list.append(page)
-            pages_list += self._load_pages(page.pages)
-
-        return pages_list
+        self._data_provider = data_provider
+        self._page_manager = page_manager
+        self._attachment_manager = attachment_manager
 
     @staticmethod
-    def _inject_watermark(pages):
-        for page in pages:
-            page.inject_watermark()
+    def _page_title(current_title, new_title, config_title=None, hold_current=False):
+        if hold_current:
+            return current_title
+        if config_title:
+            return config_title
+        return new_title
+
+    def _page(self, current_page, source):
+        page = copy.copy(current_page)
+        page.title, page.body = self._data_provider.get_source_data(self._data_provider.get_source(source))
+        return page
+
+    def _page_attachments(self, images, downloads):
+        images_filenames = [self._data_provider.get_image(image) for image in images]
+        downloads_filenames = [self._data_provider.get_attachment(download) for download in downloads]
+        return images_filenames + downloads_filenames
+
+    @staticmethod
+    def _remove_page_mutators(page, page_config):
+        WatermarkPageMutator(page_config.watermark).remove(page)
+        LinkPageMutator(page_config.link).remove(page)
+
+    @staticmethod
+    def _add_page_mutators(page, page_config):
+        if page_config.link:
+            LinkPageMutator(page_config.link).add(page)
+
+        if page_config.watermark:
+            WatermarkPageMutator(page_config.watermark).add(page)
+
+    def publish(self, force=False, watermark=False, hold_titles=False):
+        # publish pages
+        pages_to_update = []
+        for page_config in flatten_page_config_list(self._config.pages):
+            if page_config.id is None:
+                raise AttributeError('Missed attribute "id"')
+            current_page = self._page_manager.load(page_config.id)
+            self._remove_page_mutators(current_page, page_config)
+
+            page = self._page(current_page, page_config.source)
+            page.title = self._page_title(current_page.title, page.title, page_config.title, hold_titles)
+
+            if not force and current_page == page:
+                continue
+
+            self._add_page_mutators(page, page_config)
+            pages_to_update.append(page)
+
+        self._publish_pages(pages_to_update)
+
+        # publish attachements
+        for page_config in flatten_page_config_list(self._config.pages):
+            attachments = self._page_attachments(page_config.images, page_config.downloads)
+            self._publish_page_attachments(page_config.id, attachments)
 
     def _publish_pages(self, pages):
         for page in pages:
             self._publish_page(page)
 
-    def _prepare_to_publish(self, page, disable_watermark):
-        """
-        Prepare page body. Check old and new page diff.
-        """
-
-        page.set_body(disable_watermark)
-        diff = self._page_publisher.check_diff(page.id, page.body)
-        return diff, page
-
     def _publish_page(self, page):
         log.info('Publishing page: id: %s' % page.id)
 
-        content_id = self._page_publisher.publish(page.title, page.body, page.id)
+        content_id = self._page_manager.update(page)
 
         log.info('Published to: %s' % content_id)
-
-        self._publish_page_attachments(content_id, page.attachments)
 
     def _publish_page_attachments(self, content_id, attachments):
         for attachment in attachments:
@@ -75,42 +101,56 @@ class Publisher(object):
     def _publish_page_attachement(self, content_id, filename):
         log.info('Publishing attachment: %s (parent_id: %s)' % (filename, content_id))
 
-        self._attachment_publisher.publish(content_id, filename)
+        self._attachment_manager.publish(content_id, filename)
 
         log.info('Published to: %s' % content_id)
 
 
+def setup_config_overrides(config, url=None, watermark=None, link=None):
+    if url:
+        config.url = url
+
+    if watermark:
+        for page in flatten_page_config_list(config.pages):
+            if watermark.lower() == 'false':
+                page.watermark = None
+            elif watermark.lower() == 'true':
+                page.watermark = DEFAULT_WATERMARK_CONTENT
+            else:
+                page.watermark = watermark
+
+    if link:
+        for page in flatten_page_config_list(config.pages):
+            if link.lower() == 'false':
+                page.link = None
+            else:
+                page.link = link
+
+
 def main():
-    """
-    Parse Arguments
-    """
-    parser = argparse.ArgumentParser(description='Publish docs to Confluence')
+    parser = argparse.ArgumentParser(description='Publish documentation (Sphinx fjson) to Confluence')
     parser.add_argument('config', type=str, help='Configuration file')
     parser.add_argument('-u', '--url', type=str, help='Confluence Url')
     parser.add_argument('-a', '--auth', type=str, help='Base64 encoded user:password string')
     parser.add_argument('-F', '--force', action='store_true', help='Publish not changed page.')
-    parser.add_argument('-dw', '--disable-watermark', action='store_true', help='Disable watermark flag')
-
-    # TODO: add vvverbosity
+    parser.add_argument('-w', '--watermark', type=str, help='Overrides the watermarks. Also can be "False" to remove '
+                                                            'all watermarks; or "True" to add watermarks'
+                                                            'with default text: "{}" on all pages.'.format(DEFAULT_WATERMARK_CONTENT))
+    parser.add_argument('-l', '--link', type=str, help='Overrides page link. If value is "False" then removes the link.')
+    parser.add_argument('-ht', '--hold-titles', action='store_true', help='Do not change page titles while publishing.')
+    parser.add_argument('-v', '--verbose', action='count')
 
     args = parser.parse_args()
 
-    # Config
-    config = Config(args.config)
+    setup_logger(args.verbose)
 
-    # Confluence API
+    config = ConfigLoader.from_yaml(args.config)
+
+    setup_config_overrides(config, args.url, args.watermark, args.link)
+
     confluence_api = create_confluence_api(DEFAULT_CONFLUENCE_API_VERSION, config.url, args.auth)
-
-    # Publishers
-    page_publisher = PagePublisher(confluence_api)
-    attachment_publisher = AttachmentPublisher(confluence_api)
-
-    # Publish
-    publisher = Publisher(config, page_publisher, attachment_publisher)
-
-    page_manager = PageManager(confluence_api)
-    publisher.publish(page_manager, args.force, args.disable_watermark)
-
+    publisher = create_publisher(config, confluence_api)
+    publisher.publish(args.force, args.watermark, args.hold_titles)
 
 if __name__ == '__main__':
     main()

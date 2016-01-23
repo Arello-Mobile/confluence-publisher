@@ -1,54 +1,66 @@
 import argparse
 
-from . import log
+from . import log, setup_logger
 from .confluence_api import create_confluence_api
 from .constants import DEFAULT_CONFLUENCE_API_VERSION
-from .config import Config
-from .publishers import PagePublisher
+from .config import ConfigLoader, ConfigDumper
+from .confluence import ConfluencePageManager, Page, Ancestor
 
 
-class PageMaker(object):
+def setup_config_overrides(config, url=None):
+    if url:
+        config.url = url
 
-    def __init__(self, config, publisher, parent_id):
-        self._config = config
-        self._publisher = publisher
-        self._parent_id = parent_id
 
-    def make_pages(self):
-        self._make_pages(self._config.pages_iter, self._config.pages, self._parent_id)
+def empty_page(space_key, title, ancestor_id, ancestor_type):
+    ancestor = Ancestor()
+    ancestor.id = ancestor_id
+    ancestor.type = ancestor_type
 
-        self._config.update_config()
-        log.info('Config has been updated.')
+    page = Page()
+    page.space_key = space_key
+    page.title = title
+    page.body = ''
+    page.ancestors.append(ancestor)
 
-    def _make_pages(self, iterator, obj, parent_id):
-        for i, page in enumerate(iterator):
-            if page._id is None:
-                page_id = self._publisher.create_blank_page(parent_id, page.title)
-                log.info('Page with id {page_id} has been created. Parent page id: {parent_id}'
-                         .format(page_id=page_id, parent_id=parent_id))
-                obj[i]['id'] = int(page_id)
-            else:
-                page_id = page.id
+    return page
 
-            self._make_pages(page.pages, obj[i].get('pages', list()), int(page_id))
+
+def make_pages(config, page_manager, parent_id):
+    parent_page = page_manager.load(parent_id)
+
+    for page_config in config.pages:
+        if page_config.id:
+            continue
+
+        page = empty_page(parent_page.space_key, page_config.title, parent_page.id, parent_page.type)
+        page_id = page_manager.create(page)
+        log.info('Page with id {page_id} has been created. Parent page id: {parent_id}'
+                 .format(page_id=page_id, parent_id=parent_id))
+        page_config.id = int(page_id)
+        make_pages(page_config, page_manager, page_id)
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Make confluence page and write this ids to config')
+    parser = argparse.ArgumentParser(description='Create Confluence pages and update configuration file with it ids')
     parser.add_argument('config', type=str, help='Configuration file')
+    parser.add_argument('-u', '--url', type=str, help='Confluence Url')
     parser.add_argument('-a', '--auth', type=str, help='Base64 encoded user:password string')
     parser.add_argument('-pid', '--parent-id', type=str, help='Parent page ID in confluence.')
+    parser.add_argument('-v', '--verbose', action='count')
 
     args = parser.parse_args()
+    setup_logger(args.verbose)
 
-    config = Config(args.config)
+    config = ConfigLoader.from_yaml(args.config)
+    setup_config_overrides(config, args.url)
+
     confluence_api = create_confluence_api(DEFAULT_CONFLUENCE_API_VERSION, config.url, args.auth)
+    page_manager = ConfluencePageManager(confluence_api)
+    make_pages(config, page_manager, args.parent_id)
 
-    publisher = PagePublisher(confluence_api)
-
-    maker = PageMaker(config, publisher, args.parent_id)
-    maker.make_pages()
-
+    ConfigDumper.to_yaml_file(config, args.config)
+    log.info('Config has been updated.')
 
 if __name__ == '__main__':
     main()

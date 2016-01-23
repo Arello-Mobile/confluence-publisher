@@ -22,7 +22,7 @@ class TemplatePageMutator(PageMutator):
         self.template_params[name] = value
 
     def add(self, page):
-        page.body = self.template_prefix + self.template.format(**self.template_params) + page.body + self.template_suffix
+        page.body = self.template_prefix + self.template.format(**self.template_params) + self.template_suffix + page.body
 
     def remove(self, page):
         page.body = re.sub(re.escape(self.template_prefix) + '.*' + re.escape(self.template_suffix), '', page.body, flags=re.DOTALL)

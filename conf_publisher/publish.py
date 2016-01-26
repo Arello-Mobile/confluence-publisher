@@ -86,7 +86,6 @@ class Publisher(object):
     def publish(self, force=False, watermark=False, hold_titles=False):
         pages_to_update = self._pages_to_update(force, watermark, hold_titles)
         attachments_to_update = self._attachments_to_update(force)
-        print attachments_to_update
 
         log.info('Publishing pages...')
         self._publish_pages(pages_to_update)

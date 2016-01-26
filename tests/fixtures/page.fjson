@@ -1,0 +1,24 @@
+{
+  "body": "Body",
+  "alabaster_version": "0.7.6",
+  "display_toc": true,
+  "title": "Title",
+  "sourcename": "test.rst",
+  "customsidebar": null,
+  "current_page_name": "test",
+  "next": null,
+  "rellinks": [
+    [
+      "genindex",
+      "General Index",
+      "I",
+      "index"
+    ]
+  ],
+  "meta": {},
+  "parents": [],
+  "sidebars": null,
+  "toc": "",
+  "prev": null,
+  "metatags": ""
+}

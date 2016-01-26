@@ -72,11 +72,21 @@ class PageConfig(object):
 
 
 class PageAattachmentConfig(object):
+    TYPE_ATTACHMENT = 'attachment'
+    TYPE_IMAGE = 'image'
+
     def __init__(self):
+        self.type = self.TYPE_ATTACHMENT
         self.path = None
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
+
+class PageImageAattachmentConfig(PageAattachmentConfig):
+    def __init__(self):
+        self.type = self.TYPE_IMAGE
+        super(PageImageAattachmentConfig, self).__init__()
 
 
 class ConfigLoader:
@@ -122,17 +132,17 @@ class ConfigLoader:
 
         if 'attachments' in page_dict:
             for path in page_dict['attachments'].get('images', list()):
-                page_config.images.append(cls._attach_from_path(path))
+                page_config.images.append(cls._attach_from_path(path, PageImageAattachmentConfig))
             for path in page_dict['attachments'].get('downloads', list()):
-                page_config.downloads.append(cls._attach_from_path(path))
+                page_config.downloads.append(cls._attach_from_path(path, PageAattachmentConfig))
 
         page_config.pages = cls._pages_from_list(page_dict.get('pages', list()))
 
         return page_config
 
     @staticmethod
-    def _attach_from_path(attach_path):
-        attach = PageAattachmentConfig()
+    def _attach_from_path(attach_path, attach_class):
+        attach = attach_class()
         attach.path = attach_path
         return attach
 

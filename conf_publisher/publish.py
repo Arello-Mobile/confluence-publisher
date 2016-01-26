@@ -4,7 +4,7 @@ import copy
 from . import log, setup_logger
 from .confluence_api import create_confluence_api
 from .confluence import ConfluencePageManager, AttachmentPublisher
-from .config import ConfigLoader, flatten_page_config_list
+from .config import ConfigLoader, flatten_page_config_list, PageImageAattachmentConfig
 from .constants import DEFAULT_CONFLUENCE_API_VERSION, DEFAULT_WATERMARK_CONTENT
 from .data_providers.sphinx_fjson_data_provider import SphinxFJsonDataProvider
 from .mutators.page_mutator import WatermarkPageMutator, LinkPageMutator
@@ -39,10 +39,10 @@ class Publisher(object):
         page.title, page.body = self._data_provider.get_source_data(self._data_provider.get_source(source))
         return page
 
-    def _page_attachments(self, images, downloads):
-        images_filenames = [self._data_provider.get_image(image) for image in images]
-        downloads_filenames = [self._data_provider.get_attachment(download) for download in downloads]
-        return images_filenames + downloads_filenames
+    def _page_attachment_file(self, attachment_config):
+        if isinstance(attachment_config, PageImageAattachmentConfig):
+            return self._data_provider.get_image(attachment_config.path)
+        return self._data_provider.get_attachment(attachment_config.path)
 
     @staticmethod
     def _remove_page_mutators(page, page_config):
@@ -57,7 +57,7 @@ class Publisher(object):
         if page_config.watermark:
             WatermarkPageMutator(page_config.watermark).add(page)
 
-    def publish(self, force=False, watermark=False, hold_titles=False):
+    def _pages_to_update(self, force=False, watermark=False, hold_titles=False):
         pages_to_update = []
         for page_config in flatten_page_config_list(self._config.pages):
             if page_config.id is None:
@@ -73,14 +73,26 @@ class Publisher(object):
 
             self._add_page_mutators(page, page_config)
             pages_to_update.append(page)
+        return pages_to_update
+
+    def _attachments_to_update(self, force=False):
+        attachments_to_update = []
+        for page_config in flatten_page_config_list(self._config.pages):
+            for attachment_config in page_config.images + page_config.downloads:
+                page_attachment = (page_config.id, self._page_attachment_file(attachment_config))
+                attachments_to_update.append(page_attachment)
+        return attachments_to_update
+
+    def publish(self, force=False, watermark=False, hold_titles=False):
+        pages_to_update = self._pages_to_update(force, watermark, hold_titles)
+        attachments_to_update = self._attachments_to_update(force)
+        print attachments_to_update
 
         log.info('Publishing pages...')
         self._publish_pages(pages_to_update)
 
         log.info('Publishing attachments...')
-        for page_config in flatten_page_config_list(self._config.pages):
-            attachments = self._page_attachments(page_config.images, page_config.downloads)
-            self._publish_page_attachments(page_config.id, attachments)
+        self._publish_attachments(attachments_to_update)
 
     def _publish_pages(self, pages):
         for page in pages:
@@ -91,15 +103,13 @@ class Publisher(object):
         content_id = self._page_manager.update(page)
         log.info('Published to: %s' % content_id)
 
-    def _publish_page_attachments(self, content_id, attachments):
-        for attachment in attachments:
+    def _publish_attachments(self, attachments):
+        for content_id, attachment in attachments:
             self._publish_page_attachement(content_id, attachment)
 
     def _publish_page_attachement(self, content_id, filename):
         log.info('Publishing attachment: %s (parent_id: %s)' % (filename, content_id))
-
         self._attachment_manager.publish(content_id, filename)
-
         log.info('Published to: %s' % content_id)
 
 

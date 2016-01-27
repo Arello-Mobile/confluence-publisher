@@ -1,5 +1,6 @@
 from unittest import TestCase
 import random
+import os
 
 from conf_publisher.confluence import Page
 from conf_publisher.publish import Publisher
@@ -57,7 +58,8 @@ class PublisherTestCase(TestCase):
         page.title = 'Title'
         page.body = 'Body'
 
-        data_provider = SphinxFJsonDataProvider(base_dir=config.base_dir)
+        tests_root = os.path.dirname(os.path.abspath(__file__))
+        data_provider = SphinxFJsonDataProvider(root_dir=tests_root, base_dir=config.base_dir)
         page_manager = FakePagePublisher([page])
         attachment_manager = FakeAttachmentPublisher()
         publisher = Publisher(config, data_provider, page_manager, attachment_manager)

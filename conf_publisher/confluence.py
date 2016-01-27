@@ -206,13 +206,13 @@ class PageBodyComparator(object):
 
         # 'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         # 'xsi:schemaLocation="http://www.atlassian.com/schema/confluence/4/ac/ confluence.xsd" '
-        wrapper = '<?xml version="1.0" encoding="UTF-8"?>' \
-                  '<!DOCTYPE ac:confluence SYSTEM "confluence.dtd">' \
-                  '<ac:confluence xmlns:ac="http://www.atlassian.com/schema/confluence/4/ac/" ' \
-                  'xmlns:ri="http://www.atlassian.com/schema/confluence/4/ri/">{}</ac:confluence>'
+        wrapper = u'<?xml version="1.0" encoding="UTF-8"?>' \
+                  u'<!DOCTYPE ac:confluence SYSTEM "confluence.dtd">' \
+                  u'<ac:confluence xmlns:ac="http://www.atlassian.com/schema/confluence/4/ac/" ' \
+                  u'xmlns:ri="http://www.atlassian.com/schema/confluence/4/ri/">{}</ac:confluence>'
 
-        first_xml = etree.XML(wrapper.format(first.encode(encoding='utf-8')), parser=cls._parser())
-        second_xml = etree.XML(wrapper.format(second.encode(encoding='utf-8')), parser=cls._parser())
+        first_xml = etree.XML(wrapper.format(first).encode(encoding='utf-8'), parser=cls._parser())
+        second_xml = etree.XML(wrapper.format(second).encode(encoding='utf-8'), parser=cls._parser())
         return cls._elements_equal(first_xml, second_xml)
 
     @staticmethod
@@ -225,7 +225,6 @@ class PageBodyComparator(object):
         # fix unknown entity
         # http://stackoverflow.com/questions/7237466/python-elementtree-support-for-parsing-unknown-xml-entities
         parser = etree.XMLParser()
-        parser.parser.UseForeignDTD(True)
         parser.entity['nbsp'] = 'nbsp'
         return parser
 

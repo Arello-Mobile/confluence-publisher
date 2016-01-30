@@ -3,6 +3,8 @@ from setuptools import setup, find_packages
 
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
+long_description = open('README.rst' if os.path.exists('README.rst') else 'README.md').read()
+
 setup(
     name='confluence-publisher',
     version='1.1.0',
@@ -10,7 +12,7 @@ setup(
     include_package_data=True,
     license='MIT',
     description='Tool for publishing Sphinx generated documents to Confluence',
-    long_description=open('README.md').read(),
+    long_description=long_description,
     url='https://github.com/Arello-Mobile/confluence-publisher',
     author='Arello Mobile',
     install_requires=open('requirements.txt').read(),

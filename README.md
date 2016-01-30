@@ -1,5 +1,7 @@
 # Confluence Publisher #
 
+[![Build Status](https://travis-ci.org/Arello-Mobile/confluence-publisher.svg?branch=master)](https://travis-ci.org/Arello-Mobile/confluence-publisher)
+
 Set of tools to help publish documentation to Confluence. It includes:
 
 - conf_publisher

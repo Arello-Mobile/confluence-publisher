@@ -1,0 +1,15 @@
+language: python
+python: 2.7
+env:
+  - TOX_ENV=py27
+  - TOX_ENV=py33
+  - TOX_ENV=py34
+  - TOX_ENV=py35
+  - TOX_ENV=py27-lxml
+  - TOX_ENV=py33-lxml
+  - TOX_ENV=py34-lxml
+  - TOX_ENV=py35-lxml
+install:
+  - pip install tox
+script:
+  - tox -e $TOX_ENV

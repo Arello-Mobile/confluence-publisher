@@ -7,15 +7,30 @@ from .confluence import ConfluencePageManager, AttachmentPublisher
 from .config import ConfigLoader, flatten_page_config_list, PageImageAattachmentConfig
 from .constants import DEFAULT_CONFLUENCE_API_VERSION, DEFAULT_WATERMARK_CONTENT
 from .data_providers.sphinx_fjson_data_provider import SphinxFJsonDataProvider
+from .data_providers.sphinx_html_data_provider import SphinxHTMLDataProvider
 from .mutators.page_mutator import WatermarkPageMutator, LinkPageMutator
+
+
+def get_data_provider_class(config):
+    if config.source_ext == '.html':
+        data_provider_class = SphinxHTMLDataProvider
+    else:
+        data_provider_class = SphinxFJsonDataProvider
+    return data_provider_class
 
 
 def create_publisher(config, confluence_api):
     page_manager = ConfluencePageManager(confluence_api)
     attachment_publisher = AttachmentPublisher(confluence_api)
-    data_provider = SphinxFJsonDataProvider(base_dir=config.base_dir, downloads_dir=config.downloads_dir,
-                                            images_dir=config.images_dir, source_ext=config.source_ext)
 
+    data_provider_class = get_data_provider_class(config)
+
+    data_provider = data_provider_class(
+        base_dir=config.base_dir,
+        downloads_dir=config.downloads_dir,
+        images_dir=config.images_dir,
+        source_ext=config.source_ext
+    )
     return Publisher(config, data_provider, page_manager, attachment_publisher)
 
 
@@ -32,7 +47,7 @@ class Publisher(object):
             return current_title
         if config_title:
             return config_title
-        return new_title
+        return new_title if new_title else current_title
 
     def _page(self, current_page, source):
         page = copy.copy(current_page)

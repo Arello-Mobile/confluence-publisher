@@ -29,7 +29,6 @@ class SphinxBaseDataProvider(DataProvider):
         self._source_ext = source_ext or self.DEFAULT_SOURCE_EXT
 
     def get_source(self, filename):
-        print self._source_dir, self._source_ext
         return os.path.join(self._source_dir, filename + self._source_ext)
 
     def get_source_data(self, filename):

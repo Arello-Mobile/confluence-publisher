@@ -8,7 +8,7 @@ from .config import ConfigLoader, flatten_page_config_list, PageImageAattachment
 from .constants import DEFAULT_CONFLUENCE_API_VERSION, DEFAULT_WATERMARK_CONTENT
 from .data_providers.sphinx_fjson_data_provider import SphinxFJsonDataProvider
 from .data_providers.sphinx_html_data_provider import SphinxHTMLDataProvider
-from .mutators.page_mutator import WatermarkPageMutator, LinkPageMutator
+from .mutators.page_mutator import WatermarkPageMutator, LinkPageMutator, AnchorPageMutator
 
 
 def get_data_provider_class(config):
@@ -43,11 +43,16 @@ class Publisher(object):
 
     @staticmethod
     def _page_title(current_title, new_title, config_title=None, hold_current=False):
+        result = None
         if hold_current:
-            return current_title
-        if config_title:
-            return config_title
-        return new_title if new_title else current_title
+            result = (current_title, new_title)
+        elif config_title:
+            result = (config_title, new_title)
+        elif new_title:
+            result = (new_title, current_title)
+        else:
+            result = (current_title, new_title)
+        return result
 
     def _page(self, current_page, source):
         page = copy.copy(current_page)
@@ -65,12 +70,15 @@ class Publisher(object):
         LinkPageMutator(page_config.link).remove(page)
 
     @staticmethod
-    def _add_page_mutators(page, page_config):
+    def _add_page_mutators(page, page_config, hold_titles):
         if page_config.link:
             LinkPageMutator(page_config.link).add(page)
 
         if page_config.watermark:
             WatermarkPageMutator(page_config.watermark).add(page)
+
+        if hold_titles:
+            AnchorPageMutator(page.title, page.unused_title).mutate(page)
 
     def _pages_to_update(self, force=False, watermark=False, hold_titles=False):
         pages_to_update = []
@@ -81,12 +89,12 @@ class Publisher(object):
             self._remove_page_mutators(current_page, page_config)
 
             page = self._page(current_page, page_config.source)
-            page.title = self._page_title(current_page.title, page.title, page_config.title, hold_titles)
+            page.title, page.unused_title = self._page_title(current_page.title, page.title, page_config.title, hold_titles)
 
             if not force and current_page == page:
                 continue
 
-            self._add_page_mutators(page, page_config)
+            self._add_page_mutators(page, page_config, hold_titles)
             pages_to_update.append(page)
         return pages_to_update
 

@@ -54,3 +54,17 @@ class LinkPageMutator(TemplatePageMutator):
     def __init__(self, link):
         super(LinkPageMutator, self).__init__()
         self.set_param('link', link)
+
+
+class AnchorPageMutator(PageMutator):
+    anchor_expression = None
+    _title = u''
+    _unused_title = u''
+
+    def __init__(self, title, unused_title):
+        self._title = ''.join(title.split())
+        self._unused_title = ''.join(unused_title.split())
+        self.anchor_expression = re.compile(re.escape(self._unused_title))
+
+    def mutate(self, page):
+        page.body = self.anchor_expression.sub(self._title, page.body, re.I|re.U)

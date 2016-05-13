@@ -44,6 +44,7 @@ class Page(Content):
         self.ancestors = list()
         self.body = None
         self.title = None
+        self.unused_title = None
         super(Page, self).__init__()
 
     def __eq__(self, other):

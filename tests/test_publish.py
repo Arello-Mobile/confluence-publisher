@@ -49,18 +49,50 @@ class PublisherTestCase(TestCase):
                             'test_download.txt'
                         ],
                     }
+                },
+                {
+                    'id': 1,
+                    'source': 'page',
+                    'title': 'cfgTitle'
+                },
+                {
+                    'id': 1,
+                    'source': 'titeless_page',
+                    'watermark': 'just mark it!',
+                    'link': 'http://localhost:8080/index.htm'
                 }
             ]
         })
 
         page = Page()
         page.id = 1
-        page.title = 'Title'
-        page.body = 'Body'
+        page.title = u'pageTitle'
+        page.unused_title = u'Useless'
+        page.body = u'''
+            Body
+            <a href="{}">Title</a>
+            <a href="{}">Unused</a>
+        '''.format(page.title, page.unused_title)
 
         tests_root = os.path.dirname(os.path.abspath(__file__))
         data_provider = SphinxFJsonDataProvider(root_dir=tests_root, base_dir=config.base_dir)
         page_manager = FakePagePublisher([page])
         attachment_manager = FakeAttachmentPublisher()
+
         publisher = Publisher(config, data_provider, page_manager, attachment_manager)
         publisher.publish()
+
+        publisher = Publisher(config, data_provider, page_manager, attachment_manager)
+        publisher.publish(force=True, watermark=True, hold_titles=True)
+
+        publisher = Publisher(config, data_provider, page_manager, attachment_manager)
+        publisher.publish(force=True, watermark=True, hold_titles=False)
+
+        publisher = Publisher(config, data_provider, page_manager, attachment_manager)
+        publisher.publish(force=True, watermark=False, hold_titles=False)
+
+        publisher = Publisher(config, data_provider, page_manager, attachment_manager)
+        publisher.publish(force=False, watermark=False, hold_titles=True)
+
+        publisher = Publisher(config, data_provider, page_manager, attachment_manager)
+        publisher.publish(force=False, watermark=True, hold_titles=False)

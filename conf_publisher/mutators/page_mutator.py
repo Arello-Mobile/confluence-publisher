@@ -62,8 +62,10 @@ class AnchorPageMutator(PageMutator):
     _unused_title = u''
 
     def __init__(self, title, unused_title):
-        self._title = ''.join(title.split())
-        self._unused_title = ''.join(unused_title.split())
+        if title:
+            self._title = ''.join(title.split())
+        if unused_title:
+            self._unused_title = ''.join(unused_title.split())
         self.anchor_expression = re.compile(re.escape(self._unused_title))
 
     def mutate(self, page):

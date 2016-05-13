@@ -25,16 +25,18 @@ class FakePagePublisher(object):
         self._pages[page.id] = page
         return page.id
 
+    def get(self):
+        return self._pages.values()
+
 
 class FakeAttachmentPublisher(object):
     def publish(self, content_id, filename):
         return random.randint(10000, 100000)
 
 
-class PublisherTestCase(TestCase):
-
-    def test_attachment_publish(self):
-        config = ConfigLoader.from_dict({
+class FakeEnv(object):
+    def __init__(self):
+        self.config = ConfigLoader.from_dict({
             'version': 2,
             'base_dir': 'fixtures',
             'pages': [
@@ -74,25 +76,72 @@ class PublisherTestCase(TestCase):
             <a href="{}">Unused</a>
         '''.format(page.title, page.unused_title)
 
-        tests_root = os.path.dirname(os.path.abspath(__file__))
-        data_provider = SphinxFJsonDataProvider(root_dir=tests_root, base_dir=config.base_dir)
-        page_manager = FakePagePublisher([page])
-        attachment_manager = FakeAttachmentPublisher()
+        self.tests_root = os.path.dirname(os.path.abspath(__file__))
+        self.data_provider = SphinxFJsonDataProvider(root_dir=self.tests_root, base_dir=self.config.base_dir)
+        self.page_manager = FakePagePublisher([page])
+        self.attachment_manager = FakeAttachmentPublisher()
 
-        publisher = Publisher(config, data_provider, page_manager, attachment_manager)
+    def items(self):
+        return [self.config, self.data_provider, self.page_manager, self.attachment_manager]
+
+
+class PublisherTestCase(TestCase):
+    title1 = u'pageTitle'
+    body1 = u'''<span class="WATERMARK BEGIN"> </span><ac:structured-macro ac:name="info">
+        <ac:rich-text-body>
+        <p><span>just mark it!</span></p>
+        </ac:rich-text-body>
+        </ac:structured-macro><span class="WATERMARK END"> </span><span class="LINK BEGIN"> </span><ac:structured-macro ac:name="info">
+        <ac:rich-text-body>
+        <p><span><a href="http://localhost:8080/index.htm" _blank="true">http://localhost:8080/index.htm</a></span></p>
+        </ac:rich-text-body>
+        </ac:structured-macro><span class="LINK END"> </span>Body'''
+
+    def test_default_publish(self):
+        env = FakeEnv()
+        publisher = Publisher(*env.items())
         publisher.publish()
+        _page = env.items()[2].get()
+        #self.assertEqual(_page[0].title, self.title1)
+        #self.assertEqual(_page[0].body, self.body1)
 
-        publisher = Publisher(config, data_provider, page_manager, attachment_manager)
+    def test_111_publish(self):
+        env = FakeEnv()
+        publisher = Publisher(*env.items())
         publisher.publish(force=True, watermark=True, hold_titles=True)
+        _page = env.items()[2].get()
+        #self.assertEqual(_page[0].title, self.title1)
+        #self.assertEqual(_page[0].body, u'')
 
-        publisher = Publisher(config, data_provider, page_manager, attachment_manager)
+    def test_110_publish(self):
+        env = FakeEnv()
+        publisher = Publisher(*env.items())
         publisher.publish(force=True, watermark=True, hold_titles=False)
+        _page = env.items()[2].get()
+        #self.assertEqual(_page[0].title, self.title1)
+        #self.assertEqual(_page[0].body, self.body1)
 
-        publisher = Publisher(config, data_provider, page_manager, attachment_manager)
+    def test_100_publish(self):
+        env = FakeEnv()
+        publisher = Publisher(*env.items())
         publisher.publish(force=True, watermark=False, hold_titles=False)
+        _page = env.items()[2].get()
+        #self.assertEqual(_page[0].title, self.title1)
+        #self.assertEqual(_page[0].body, self.body1)
 
-        publisher = Publisher(config, data_provider, page_manager, attachment_manager)
+    def test_001_publish(self):
+        env = FakeEnv()
+        publisher = Publisher(*env.items())
         publisher.publish(force=False, watermark=False, hold_titles=True)
+        _page = env.items()[2].get()
+        #self.assertEqual(_page[0].title, self.title1)
+        #self.assertEqual(_page[0].body, self.body1)
 
-        publisher = Publisher(config, data_provider, page_manager, attachment_manager)
+    def test_010_publish(self):
+        env = FakeEnv()
+        publisher = Publisher(*env.items())
         publisher.publish(force=False, watermark=True, hold_titles=False)
+        _page = env.items()[2].get()
+        #self.assertEqual(_page[0].title, self.title1)
+        #self.assertEqual(_page[0].body, self.body1)
+

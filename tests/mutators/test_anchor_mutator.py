@@ -26,8 +26,7 @@ class ConfigLoaderTestCase(TestCase):
         page.body = original_content
         # means hold-title = True
         page.title = page_old_title
-        page.unused_title =  page_new_title
 
-        AnchorPageMutator(page.title, page.unused_title).mutate(page)
+        AnchorPageMutator(page_new_title).apply_forward(page)
 
         self.assertEqual(correct_content, page.body)

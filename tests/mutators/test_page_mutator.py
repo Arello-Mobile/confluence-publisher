@@ -12,7 +12,7 @@ class ConfigLoaderTestCase(TestCase):
         page = Page()
         page.body = content
 
-        WatermarkPageMutator(watermark).add(page)
+        WatermarkPageMutator(watermark).apply_forward(page)
 
         self.assertNotEqual(content, page.body)
 
@@ -25,6 +25,6 @@ class ConfigLoaderTestCase(TestCase):
                     WatermarkPageMutator.template.format(watermark=watermark) + \
                     WatermarkPageMutator.template_suffix + clean_content
 
-        WatermarkPageMutator(watermark).remove(page)
+        WatermarkPageMutator(watermark).apply_backward(page)
 
         self.assertEqual(clean_content, page.body)

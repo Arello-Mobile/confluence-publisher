@@ -45,13 +45,13 @@ class Publisher(object):
     def _page_title(current_title, new_title, config_title=None, hold_current=False):
         result = None
         if hold_current:
-            result = (current_title, new_title)
+            result = current_title
         elif config_title:
-            result = (config_title, new_title)
+            result = config_title
         elif new_title:
-            result = (new_title, current_title)
+            result = new_title
         else:
-            result = (current_title, new_title)
+            result = current_title
         return result
 
     def _page(self, current_page, source):
@@ -65,20 +65,26 @@ class Publisher(object):
         return self._data_provider.get_attachment(attachment_config.path)
 
     @staticmethod
-    def _remove_page_mutators(page, page_config):
-        WatermarkPageMutator(page_config.watermark).remove(page)
-        LinkPageMutator(page_config.link).remove(page)
+    def _remove_page_mutators(page, mutators):
+        for mutator in mutators:
+            mutator.apply_backward(page)
 
     @staticmethod
-    def _add_page_mutators(page, page_config, hold_titles):
+    def _add_page_mutators(page, mutators):
+        for mutator in mutators:
+            mutator.apply_forward(page)
+
+    def _init_page_mutators(self, page_config, old_title, hold_titles):
+        mutators = []
+
         if page_config.link:
-            LinkPageMutator(page_config.link).add(page)
-
+            mutators.append(LinkPageMutator(page_config.link))
         if page_config.watermark:
-            WatermarkPageMutator(page_config.watermark).add(page)
-
+            mutators.append(WatermarkPageMutator(page_config.watermark))
         if hold_titles:
-            AnchorPageMutator(page.title, page.unused_title).mutate(page)
+            mutators.append(AnchorPageMutator(old_title))
+
+        return mutators
 
     def _pages_to_update(self, force=False, watermark=False, hold_titles=False):
         pages_to_update = []
@@ -86,15 +92,17 @@ class Publisher(object):
             if page_config.id is None:
                 raise AttributeError('Missed attribute "id"')
             current_page = self._page_manager.load(page_config.id)
-            self._remove_page_mutators(current_page, page_config)
-
             page = self._page(current_page, page_config.source)
-            page.title, page.unused_title = self._page_title(current_page.title, page.title, page_config.title, hold_titles)
 
+            mutators = self._init_page_mutators(page_config, page.title, hold_titles)
+            self._remove_page_mutators(current_page, mutators)
+
+            page.title = self._page_title(current_page.title, page.title, page_config.title, hold_titles)
             if not force and current_page == page:
                 continue
 
-            self._add_page_mutators(page, page_config, hold_titles)
+            self._add_page_mutators(page, mutators)
+
             pages_to_update.append(page)
         return pages_to_update
 

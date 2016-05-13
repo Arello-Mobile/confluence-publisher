@@ -3,10 +3,10 @@ import re
 
 class PageMutator(object):
 
-    def add(self, page):
+    def apply_forward(self, page):
         raise NotImplemented()
 
-    def remove(self, page):
+    def apply_backward(self, page):
         raise NotImplemented()
 
 
@@ -21,10 +21,10 @@ class TemplatePageMutator(PageMutator):
     def set_param(self, name, value):
         self.template_params[name] = value
 
-    def add(self, page):
+    def apply_forward(self, page):
         page.body = self.template_prefix + self.template.format(**self.template_params) + self.template_suffix + page.body
 
-    def remove(self, page):
+    def apply_backward(self, page):
         page.body = re.sub(re.escape(self.template_prefix) + '.*' + re.escape(self.template_suffix), '', page.body, flags=re.DOTALL)
 
 
@@ -58,15 +58,18 @@ class LinkPageMutator(TemplatePageMutator):
 
 class AnchorPageMutator(PageMutator):
     anchor_expression = None
-    _title = u''
-    _unused_title = u''
+    _old_title = u''
 
-    def __init__(self, title, unused_title):
-        if title:
-            self._title = ''.join(title.split())
-        if unused_title:
-            self._unused_title = ''.join(unused_title.split())
-        self.anchor_expression = re.compile(re.escape(self._unused_title))
+    def __init__(self, old_title):
+        if old_title:
+            self._old_title = ''.join(old_title.split())
+            self.anchor_expression = re.compile(re.escape(self._old_title))
 
-    def mutate(self, page):
-        page.body = self.anchor_expression.sub(self._title, page.body, re.I|re.U)
+    def apply_forward(self, page):
+        if not page.title or not page.body:
+            return
+        _title = ''.join(page.title.split())
+        page.body = self.anchor_expression.sub(_title, page.body, re.I|re.U)
+
+    def apply_backward(self, page):
+        pass

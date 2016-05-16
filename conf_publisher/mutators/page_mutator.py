@@ -66,7 +66,7 @@ class AnchorPageMutator(PageMutator):
             self.anchor_expression = re.compile(re.escape(self._old_title))
 
     def apply_forward(self, page):
-        if not page.title or not page.body:
+        if not page.title or not page.body or not self.anchor_expression:
             return
         _title = ''.join(page.title.split())
         page.body = self.anchor_expression.sub(_title, page.body, re.I|re.U)

@@ -26,7 +26,7 @@ class FakePagePublisher(object):
         return page.id
 
     def get(self):
-        return self._pages.values()
+        return list(self._pages.values())
 
 
 class FakeAttachmentPublisher(object):
@@ -53,7 +53,6 @@ class FakeEnv(object):
                     }
                 },
                 {
-                    'id': 1,
                     'source': 'page',
                     'title': 'cfgTitle'
                 },
@@ -86,62 +85,80 @@ class FakeEnv(object):
 
 
 class PublisherTestCase(TestCase):
-    title1 = u'pageTitle'
-    body1 = u'''<span class="WATERMARK BEGIN"> </span><ac:structured-macro ac:name="info">
-        <ac:rich-text-body>
-        <p><span>just mark it!</span></p>
-        </ac:rich-text-body>
-        </ac:structured-macro><span class="WATERMARK END"> </span><span class="LINK BEGIN"> </span><ac:structured-macro ac:name="info">
-        <ac:rich-text-body>
-        <p><span><a href="http://localhost:8080/index.htm" _blank="true">http://localhost:8080/index.htm</a></span></p>
-        </ac:rich-text-body>
-        </ac:structured-macro><span class="LINK END"> </span>Body'''
+    #maxDiff = None
+    @classmethod
+    def set_fixtures(cls):
+        cls.title = u'pageTitle'
+        cls.body  = u'''
+            Body
+            <a href="pageTitle">Title</a>
+            <a href="Useless">Unused</a>
+        '''
+
+    @staticmethod
+    def set_checker(body1, body2):
+        body_iter = lambda body: (x for x in body.split('\n'))
+        example = body_iter(body2)
+        for st in body1.split('\n'):
+            assert st.strip() == next(example).strip()
 
     def test_default_publish(self):
         env = FakeEnv()
+        self.set_fixtures()
         publisher = Publisher(*env.items())
-        publisher.publish()
+        with self.assertRaises(AttributeError):
+            publisher.publish()
         _page = env.items()[2].get()
-        #self.assertEqual(_page[0].title, self.title1)
-        #self.assertEqual(_page[0].body, self.body1)
+        self.assertEqual(_page[0].title, self.title)
+        self.set_checker(_page[0].body, self.body)
 
     def test_111_publish(self):
         env = FakeEnv()
+        self.set_fixtures()
         publisher = Publisher(*env.items())
-        publisher.publish(force=True, watermark=True, hold_titles=True)
+        with self.assertRaises(AttributeError):
+            publisher.publish(force=True, watermark=True, hold_titles=True)
         _page = env.items()[2].get()
-        #self.assertEqual(_page[0].title, self.title1)
-        #self.assertEqual(_page[0].body, u'')
+        self.assertEqual(_page[0].title, self.title)
+        self.set_checker(_page[0].body, self.body)
 
     def test_110_publish(self):
         env = FakeEnv()
+        self.set_fixtures()
         publisher = Publisher(*env.items())
-        publisher.publish(force=True, watermark=True, hold_titles=False)
+        with self.assertRaises(AttributeError):
+            publisher.publish(force=True, watermark=True, hold_titles=False)
         _page = env.items()[2].get()
-        #self.assertEqual(_page[0].title, self.title1)
-        #self.assertEqual(_page[0].body, self.body1)
+        self.assertEqual(_page[0].title, self.title)
+        self.set_checker(_page[0].body, self.body)
 
     def test_100_publish(self):
         env = FakeEnv()
+        self.set_fixtures()
         publisher = Publisher(*env.items())
-        publisher.publish(force=True, watermark=False, hold_titles=False)
+        with self.assertRaises(AttributeError):
+            publisher.publish(force=True, watermark=False, hold_titles=False)
         _page = env.items()[2].get()
-        #self.assertEqual(_page[0].title, self.title1)
-        #self.assertEqual(_page[0].body, self.body1)
+        self.assertEqual(_page[0].title, self.title)
+        self.set_checker(_page[0].body, self.body)
 
     def test_001_publish(self):
         env = FakeEnv()
+        self.set_fixtures()
         publisher = Publisher(*env.items())
-        publisher.publish(force=False, watermark=False, hold_titles=True)
+        with self.assertRaises(AttributeError):
+            publisher.publish(force=False, watermark=False, hold_titles=True)
         _page = env.items()[2].get()
-        #self.assertEqual(_page[0].title, self.title1)
-        #self.assertEqual(_page[0].body, self.body1)
+        self.assertEqual(_page[0].title, self.title)
+        self.set_checker(_page[0].body, self.body)
 
     def test_010_publish(self):
         env = FakeEnv()
+        self.set_fixtures()
         publisher = Publisher(*env.items())
-        publisher.publish(force=False, watermark=True, hold_titles=False)
+        with self.assertRaises(AttributeError):
+            publisher.publish(force=False, watermark=True, hold_titles=False)
         _page = env.items()[2].get()
-        #self.assertEqual(_page[0].title, self.title1)
-        #self.assertEqual(_page[0].body, self.body1)
+        self.assertEqual(_page[0].title, self.title)
+        self.set_checker(_page[0].body, self.body)
 

@@ -1,4 +1,4 @@
-# Confluence Publisher #
+# Confluence Publisher
 
 [![Build Status](https://travis-ci.org/Arello-Mobile/confluence-publisher.svg?branch=master)](https://travis-ci.org/Arello-Mobile/confluence-publisher)
 
@@ -10,14 +10,68 @@ Set of tools to help publish documentation to Confluence. It includes:
 This tools use own configuration file.
 
 For now it supports:
- - confluence versions: 5.5
- - sphinx-build formats: "json", "json_conf"
+ - confluence versions: 5.5 - 5.9
+ - sphinx-build formats: "fjson", "html"
 
-## Installation ##
+## Installation
 
     > pip install confluence-publisher
 
-## Configuration file format ##
+## Publisher
+
+    > conf_publisher config.yml --auth XXXXXjpwYXNzdXXXXX==
+
+If a config doesn't contain page.id, you can use ``conf_page_maker`` command
+to create a page and page ID will be put into config automatically.
+
+```
+usage: conf_publisher [-h] [-u URL] [-a AUTH] [-F] [-w WATERMARK] [-l LINK]
+                      [-ht] [-v]
+                      config
+
+Publish documentation (Sphinx fjson) to Confluence
+
+positional arguments:
+  config                Configuration file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -u URL, --url URL     Confluence Url
+  -a AUTH, --auth AUTH  Base64 encoded user:password string
+  -F, --force           Publish not changed page.
+  -w WATERMARK, --watermark WATERMARK
+                        Overrides the watermarks. Also can be "False" to
+                        remove all watermarks; or "True" to add watermarkswith
+                        default text: "Automatically generated content. Do not
+                        edit directly." on all pages.
+  -l LINK, --link LINK  Overrides page link. If value is "False" then removes
+                        the link.
+  -ht, --hold-titles    Do not change page titles while publishing.
+  -v, --verbose
+```
+
+## Page Maker
+
+    > conf_page_maker config.yml --auth XXXXXjpwYXNzdXXXXX== --parent-id 52332132
+
+```
+usage: conf_page_maker [-h] [-u URL] [-a AUTH] [-pid PARENT_ID] [-v] config
+
+Create Confluence pages and update configuration file with it ids
+
+positional arguments:
+  config                Configuration file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -u URL, --url URL     Confluence Url
+  -a AUTH, --auth AUTH  Base64 encoded user:password string
+  -pid PARENT_ID, --parent-id PARENT_ID
+                        Parent page ID in confluence.
+  -v, --verbose
+```
+
+## Configuration file format
 
 Directives:
 
@@ -39,7 +93,7 @@ Directives:
         - **images**
             - path_to_img1
             - path_to_img2
-        - **downloads** 
+        - **downloads**
             - path_to_file1
             - path_to_file2
     - **pages** Subpages to be published.
@@ -47,7 +101,7 @@ Directives:
         - **...** same structure as for pages
 
 
-### Config example ###
+### Config example
 
 ```
   version: 2
@@ -104,58 +158,4 @@ or more JSONify style:
     }
   ]
 }
-```
-
-## Publisher ##
-
-    > conf_publisher config.yml --auth XXXXXjpwYXNzdXXXXX==
-
-If a config doesn't contain page.id, you can use ``conf_page_maker`` command
-to create a page and page ID will be put into config automatically.
-
-```
-usage: conf_publisher [-h] [-u URL] [-a AUTH] [-F] [-w WATERMARK] [-l LINK]
-                      [-ht] [-v]
-                      config
-
-Publish documentation (Sphinx fjson) to Confluence
-
-positional arguments:
-  config                Configuration file
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -u URL, --url URL     Confluence Url
-  -a AUTH, --auth AUTH  Base64 encoded user:password string
-  -F, --force           Publish not changed page.
-  -w WATERMARK, --watermark WATERMARK
-                        Overrides the watermarks. Also can be "False" to
-                        remove all watermarks; or "True" to add watermarkswith
-                        default text: "Automatically generated content. Do not
-                        edit directly." on all pages.
-  -l LINK, --link LINK  Overrides page link. If value is "False" then removes
-                        the link.
-  -ht, --hold-titles    Do not change page titles while publishing.
-  -v, --verbose
-```
-
-## Page Maker ##
-
-    > conf_page_maker config.yml --auth XXXXXjpwYXNzdXXXXX== --parent-id 52332132
-
-```
-usage: conf_page_maker [-h] [-u URL] [-a AUTH] [-pid PARENT_ID] [-v] config
-
-Create Confluence pages and update configuration file with it ids
-
-positional arguments:
-  config                Configuration file
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -u URL, --url URL     Confluence Url
-  -a AUTH, --auth AUTH  Base64 encoded user:password string
-  -pid PARENT_ID, --parent-id PARENT_ID
-                        Parent page ID in confluence.
-  -v, --verbose
 ```

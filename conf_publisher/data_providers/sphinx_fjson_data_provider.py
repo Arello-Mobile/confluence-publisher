@@ -15,4 +15,4 @@ class SphinxFJsonDataProvider(SphinxBaseDataProvider):
         with open(filepath, 'r') as f:
             content = json_serializer.load(f)
 
-        return content['title'], content['body']
+        return content.get('title'), content.get('body')

@@ -6,6 +6,7 @@ Set of tools to help publish documentation to Confluence. It includes:
 
 - conf_publisher
 - conf_page_maker
+- conf_page_dumper
 
 This tools use own configuration file.
 
@@ -14,13 +15,34 @@ For now it supports:
  - confluence versions: 5.5 - 5.9
  - sphinx-build formats: "fjson", "html"
 
-## Installation
 
-    > pip install confluence-publisher
+## Why?
+
+This extension is written as part of our Documentation Toolkit which we use in our job daily.
+The main idea of toolkit is to make a process of creating and updating documentation able to be automated
+
+Other parts of our toolkit is:
+
+- [py2swagger](#TBA)
+- [swagger2rst](https://github.com/Arello-Mobile/swagger2rst)
+- [sphinx-confluence](https://github.com/Arello-Mobile/sphinx-confluence)
+- [confluence-publisher](https://github.com/Arello-Mobile/confluence-publisher)
+
+
+# Install
+
+Install Confluence Publisher from [PyPI](https://pypi.python.org/pypi/confluence-publisher) with
+
+```
+$ pip install confluence-publisher
+```
+
 
 ## Publisher
 
-    > conf_publisher config.yml --auth XXXXXjpwYXNzdXXXXX==
+```
+$ conf_publisher config.yml --auth XXXXXjpwYXNzdXXXXX==
+```
 
 If a config doesn't contain page.id, you can use ``conf_page_maker`` command
 to create a page and page ID will be put into config automatically.
@@ -51,9 +73,12 @@ optional arguments:
   -v, --verbose
 ```
 
+
 ## Page Maker
 
-    > conf_page_maker config.yml --auth XXXXXjpwYXNzdXXXXX== --parent-id 52332132
+```
+$ conf_page_maker config.yml --auth XXXXXjpwYXNzdXXXXX== --parent-id 52332132
+```
 
 ```
 usage: conf_page_maker [-h] [-u URL] [-a AUTH] [-pid PARENT_ID] [-v] config
@@ -66,11 +91,31 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -u URL, --url URL     Confluence Url
-  -a AUTH, --auth AUTH  Base64 encoded user:password string
+  -a AUTH, --auth AUTH  Base64 encoded user:password string. Required.
   -pid PARENT_ID, --parent-id PARENT_ID
                         Parent page ID in confluence.
   -v, --verbose
 ```
+
+
+## Page dumper
+
+```
+usage: conf_page_dumper [-h] [-u URL] [-a AUTH] [-o OUTPUT] page_id
+
+Dumps Confluence page in storage format
+
+positional arguments:
+  page_id               Configuration file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -u URL, --url URL     Confluence Url
+  -a AUTH, --auth AUTH  Base64 encoded user:password string
+  -o OUTPUT, --output OUTPUT
+                        Output file|stdout|stderr
+```
+
 
 ## Configuration file format
 

@@ -30,6 +30,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
+            'conf_page_dumper = conf_publisher.page_dumper:main',
             'conf_page_maker = conf_publisher.page_maker:main',
             'conf_publisher = conf_publisher.publish:main'
         ]

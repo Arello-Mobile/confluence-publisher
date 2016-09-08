@@ -26,26 +26,39 @@ def empty_page(space_key, title, ancestor_id, ancestor_type):
     return page
 
 
-def make_pages(config, page_manager, parent_id):
-    parent_page = page_manager.load(parent_id)
+def make_page(parent_page, title, page_manager):
+    page = empty_page(parent_page.space_key, title, parent_page.id, parent_page.type)
+    page_id = page_manager.create(page)
+    return int(page_id)
+
+
+def make_pages(config, page_manager, parent_id=None):
+    parent_page = None
+    if parent_id:
+        parent_page = page_manager.load(parent_id)
 
     for page_config in config.pages:
-        if page_config.id:
-            continue
+        if not page_config.id:
+            if not parent_page:
+                log.warning('Page without id and parent page. Skip.')
+            elif not page_config.title:
+                log.warning('Page without title. Skip. Parent page id: {parent_id}.'.format(parent_id=parent_id))
+            else:
+                page_config.id = make_page(parent_page, page_config.title, page_manager)
+                log.info('Page with id {page_id} has been created. Parent page id: {parent_id}'
+                         .format(page_id=page_config.id, parent_id=parent_page.id))
+        else:
+            log.info('Skip page with id {page_id}'.format(page_id=page_config.id))
 
-        page = empty_page(parent_page.space_key, page_config.title, parent_page.id, parent_page.type)
-        page_id = page_manager.create(page)
-        log.info('Page with id {page_id} has been created. Parent page id: {parent_id}'
-                 .format(page_id=page_id, parent_id=parent_id))
-        page_config.id = int(page_id)
-        make_pages(page_config, page_manager, page_id)
+        if len(page_config.pages):
+            make_pages(page_config, page_manager, page_config.id)
 
 
 def main():
     parser = argparse.ArgumentParser(description='Create Confluence pages and update configuration file with it ids')
     parser.add_argument('config', type=str, help='Configuration file')
     parser.add_argument('-u', '--url', type=str, help='Confluence Url')
-    parser.add_argument('-a', '--auth', type=str, help='Base64 encoded user:password string')
+    parser.add_argument('-a', '--auth', type=str, required=True, help='Base64 encoded user:password string. Required.')
     parser.add_argument('-pid', '--parent-id', type=str, help='Parent page ID in confluence.')
     parser.add_argument('-v', '--verbose', action='count')
 

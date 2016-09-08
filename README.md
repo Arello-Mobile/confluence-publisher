@@ -10,6 +10,7 @@ Set of tools to help publish documentation to Confluence. It includes:
 This tools use own configuration file.
 
 For now it supports:
+
  - confluence versions: 5.5 - 5.9
  - sphinx-build formats: "fjson", "html"
 

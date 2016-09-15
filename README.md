@@ -18,12 +18,12 @@ For now it supports:
 
 ## Why?
 
-This extension is written as part of our Documentation Toolkit which we use in our job daily.
+This tools are written as part of our Documentation Toolkit which we use in our job daily.
 The main idea of toolkit is to make a process of creating and updating documentation able to be automated
 
 Other parts of our toolkit is:
 
-- [py2swagger](#TBA)
+- [py2swagger](https://github.com/Arello-Mobile/py2swagger)
 - [swagger2rst](https://github.com/Arello-Mobile/swagger2rst)
 - [sphinx-confluence](https://github.com/Arello-Mobile/sphinx-confluence)
 - [confluence-publisher](https://github.com/Arello-Mobile/confluence-publisher)

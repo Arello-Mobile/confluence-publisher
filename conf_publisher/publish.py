@@ -2,6 +2,7 @@ import argparse
 import copy
 
 from . import log, setup_logger
+from .auth import parse_authentication
 from .confluence_api import create_confluence_api
 from .confluence import ConfluencePageManager, AttachmentPublisher
 from .config import ConfigLoader, flatten_page_config_list, PageImageAattachmentConfig
@@ -168,7 +169,9 @@ def main():
     parser = argparse.ArgumentParser(description='Publish documentation (Sphinx fjson) to Confluence')
     parser.add_argument('config', type=str, help='Configuration file')
     parser.add_argument('-u', '--url', type=str, help='Confluence Url')
-    parser.add_argument('-a', '--auth', type=str, help='Base64 encoded user:password string')
+    auth_group = parser.add_mutually_exclusive_group(required=True)
+    auth_group.add_argument('-a', '--auth', type=str, help='Base64 encoded user:password string')
+    auth_group.add_argument('-U', '--user', type=str, help='Username (prompt password)')
     parser.add_argument('-F', '--force', action='store_true', help='Publish not changed page.')
     parser.add_argument('-w', '--watermark', type=str, help='Overrides the watermarks. Also can be "False" to remove '
                                                             'all watermarks; or "True" to add watermarks'
@@ -178,14 +181,14 @@ def main():
     parser.add_argument('-v', '--verbose', action='count')
 
     args = parser.parse_args()
-
+    auth = parse_authentication(args.auth, args.user)
     setup_logger(args.verbose)
 
     config = ConfigLoader.from_yaml(args.config)
 
     setup_config_overrides(config, args.url, args.watermark, args.link)
 
-    confluence_api = create_confluence_api(DEFAULT_CONFLUENCE_API_VERSION, config.url, args.auth)
+    confluence_api = create_confluence_api(DEFAULT_CONFLUENCE_API_VERSION, config.url, auth)
     publisher = create_publisher(config, confluence_api)
     publisher.publish(args.force, args.watermark, args.hold_titles)
 

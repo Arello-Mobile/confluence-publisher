@@ -48,8 +48,8 @@ If a config doesn't contain page.id, you can use ``conf_page_maker`` command
 to create a page and page ID will be put into config automatically.
 
 ```
-usage: conf_publisher [-h] [-u URL] [-a AUTH] [-F] [-w WATERMARK] [-l LINK]
-                      [-ht] [-v]
+usage: conf_publisher [-h] [-u URL] (-a AUTH | -U USER) [-F] [-w WATERMARK]
+                      [-l LINK] [-ht] [-v]
                       config
 
 Publish documentation (Sphinx fjson) to Confluence
@@ -61,6 +61,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -u URL, --url URL     Confluence Url
   -a AUTH, --auth AUTH  Base64 encoded user:password string
+  -U USER, --user USER  Username (prompt password)
   -F, --force           Publish not changed page.
   -w WATERMARK, --watermark WATERMARK
                         Overrides the watermarks. Also can be "False" to
@@ -81,7 +82,8 @@ $ conf_page_maker config.yml --auth XXXXXjpwYXNzdXXXXX== --parent-id 52332132
 ```
 
 ```
-usage: conf_page_maker [-h] [-u URL] [-a AUTH] [-pid PARENT_ID] [-v] config
+usage: conf_page_maker [-h] [-u URL] (-a AUTH | -U USER) [-pid PARENT_ID] [-v]
+                       config
 
 Create Confluence pages and update configuration file with it ids
 
@@ -91,7 +93,8 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -u URL, --url URL     Confluence Url
-  -a AUTH, --auth AUTH  Base64 encoded user:password string. Required.
+  -a AUTH, --auth AUTH  Base64 encoded user:password string
+  -U USER, --user USER  Username (prompt password)
   -pid PARENT_ID, --parent-id PARENT_ID
                         Parent page ID in confluence.
   -v, --verbose
@@ -101,7 +104,7 @@ optional arguments:
 ## Page dumper
 
 ```
-usage: conf_page_dumper [-h] [-u URL] [-a AUTH] [-o OUTPUT] page_id
+usage: conf_page_dumper [-h] [-u URL] (-a AUTH | -U USER) [-o OUTPUT] page_id
 
 Dumps Confluence page in storage format
 
@@ -112,6 +115,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -u URL, --url URL     Confluence Url
   -a AUTH, --auth AUTH  Base64 encoded user:password string
+  -U USER, --user USER  Username (prompt password)
   -o OUTPUT, --output OUTPUT
                         Output file|stdout|stderr
 ```

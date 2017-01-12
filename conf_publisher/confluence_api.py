@@ -26,8 +26,16 @@ class ConfluenceRestApiBase(object):
         self.auth = auth
         self.headers = {
             'content-type': 'application/json',
-            'Authorization': 'Basic ' + auth
         }
+        # Basic HTTP authentication will use the encoded user:pass which is a string,
+        # otherwise, parse_authentication created a requests.Session object.
+        if isinstance(auth, basestring):
+            log.debug('Using Basic HTTP authentication')
+            self.headers['Authorization'] = 'Basic ' + auth
+            self.s = None
+        else:
+            log.debug('Using session authentication')
+            self.s = auth
 
     @staticmethod
     def _build_params(params_map):
@@ -38,16 +46,24 @@ class ConfluenceRestApiBase(object):
         return '/'.join([self.confluence_url, self.api_path] + parts)
 
     def _get(self, url, **kwargs):
-        return self._request(requests.get, url, **kwargs)
+        if self.s is None:
+            return self._request(requests.get, url, **kwargs)
+        return self._request(self.s.get, url, **kwargs)
 
     def _post(self, url, _json=None, **kwargs):
-        return self._request(requests.post, url, json=_json, **kwargs)
+        if self.s is None:
+            return self._request(requests.post, url, json=_json, **kwargs)
+        return self._request(self.s.post, url, json=_json, **kwargs)
 
     def _put(self, url, _json=None, **kwargs):
-        return self._request(requests.put, url, json=_json, **kwargs)
+        if self.s is None:
+            return self._request(requests.put, url, json=_json, **kwargs)
+        return self._request(self.s.put, url, json=_json, **kwargs)
 
     def _delete(self, url, **kwargs):
-        return self._request(requests.delete, url, **kwargs)
+        if self.s is None:
+            return self._request(requests.delete, url, **kwargs)
+        return self._request(self.s.delete, url, **kwargs)
 
     def _request(self, requester, url, **kwargs):
         if 'headers' not in kwargs:
@@ -212,8 +228,9 @@ class ConfluenceRestApi553(ConfluenceRestApiBase):
     def _create_attachment(self, url, attachment, comment=None, minor_edits=False):
         headers = {
             'X-Atlassian-Token': 'no-check',
-            'Authorization': 'Basic ' + self.auth
         }
+        if self.s is None:
+            headers['Authorization'] = 'Basic ' + self.auth
 
         params_map = {'comment': comment, 'minorEdit': minor_edits}
         params = self._build_params(params_map)

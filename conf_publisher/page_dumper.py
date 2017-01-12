@@ -15,10 +15,11 @@ def main():
     auth_group = parser.add_mutually_exclusive_group(required=True)
     auth_group.add_argument('-a', '--auth', type=str, help='Base64 encoded user:password string')
     auth_group.add_argument('-U', '--user', type=str, help='Username (prompt password)')
+    parser.add_argument('-t', '--auth-type', type=str, help='"basic" or "session" authentication')
     parser.add_argument('-o', '--output', type=str, help='Output file|stdout|stderr', default='stdout')
 
     args = parser.parse_args()
-    auth = parse_authentication(args.auth, args.user)
+    auth = parse_authentication(args.auth, args.user, args.auth_type)
 
     confluence_api = create_confluence_api(DEFAULT_CONFLUENCE_API_VERSION, args.url, auth)
     page_manager = ConfluencePageManager(confluence_api)

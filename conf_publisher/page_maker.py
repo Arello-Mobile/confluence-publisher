@@ -62,7 +62,7 @@ def main():
     auth_group = parser.add_mutually_exclusive_group(required=True)
     auth_group.add_argument('-a', '--auth', type=str, help='Base64 encoded user:password string')
     auth_group.add_argument('-U', '--user', type=str, help='Username (prompt password)')
-    parser.add_argument('-t', '--auth-type', type=str, help='"basic" or "session" authentication')
+    parser.add_argument('-t', '--auth-type', choices=['basic', 'session'], help='Use "session" for servers with Basic HTTP disabled')
     parser.add_argument('-pid', '--parent-id', type=str, help='Parent page ID in confluence.')
     parser.add_argument('-v', '--verbose', action='count')
 

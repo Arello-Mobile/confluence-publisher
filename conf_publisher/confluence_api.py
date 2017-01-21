@@ -1,4 +1,5 @@
 import requests
+from requests.auth import HTTPBasicAuth
 from . import log
 from .constants import DEFAULT_CONFLUENCE_API_VERSION
 
@@ -13,7 +14,8 @@ def create_confluence_api(version, url, auth):
     if confluence_api_class is None:
         raise NotImplementedError('This API Version is not implemented')
 
-    confluence_api = confluence_api_class(url, auth)
+    auth_instance = HTTPBasicAuth(*auth)
+    confluence_api = confluence_api_class(url, auth_instance)
 
     return confluence_api
 
@@ -26,7 +28,6 @@ class ConfluenceRestApiBase(object):
         self.auth = auth
         self.headers = {
             'content-type': 'application/json',
-            'Authorization': 'Basic ' + auth
         }
 
     @staticmethod
@@ -56,7 +57,7 @@ class ConfluenceRestApiBase(object):
         log.debug('Request URL: %s', url)
         log.debug('Request Arguments: %s', kwargs)
 
-        r = requester(url, **kwargs)
+        r = requester(url, auth=self.auth, **kwargs)
         if r.status_code != requests.codes.ok:
             log.error(r.content)
             r.raise_for_status()
@@ -212,11 +213,10 @@ class ConfluenceRestApi553(ConfluenceRestApiBase):
     def _create_attachment(self, url, attachment, comment=None, minor_edits=False):
         headers = {
             'X-Atlassian-Token': 'no-check',
-            'Authorization': 'Basic ' + self.auth
         }
 
         params_map = {'comment': comment, 'minorEdit': minor_edits}
         params = self._build_params(params_map)
 
-        ret = self._post(url, files={'file': attachment}, data=params, headers=headers)
+        ret = self._post(url, files={'file': attachment}, data=params, auth=self.auth, headers=headers)
         return ret

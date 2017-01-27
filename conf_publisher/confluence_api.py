@@ -174,9 +174,9 @@ class ConfluenceRestApi553(ConfluenceRestApiBase):
         params = self._build_params(params_map)
 
         ret = self._get(url, params=params)
-        return ret
+        return ret['results']
 
-    def create_attachment(self, content_id, attachment, comment=None, minor_edits=False):
+    def create_attachment(self, content_id, attachment, comment=None, minor_edits=False, media_type=None, filename=None):
         """
         Add one or more attachments to a Confluence Content entity, with optional comments.
 
@@ -189,7 +189,7 @@ class ConfluenceRestApi553(ConfluenceRestApiBase):
         :return:
         """
         url = self._construct_url('content', content_id, 'child', 'attachment')
-        ret = self._create_attachment(url, attachment, comment, minor_edits)
+        ret = self._create_attachment(url, attachment, comment, minor_edits, media_type, filename)
         return ret
 
     def update_attachment_data(self, content_id, attachment_id, attachment, comment=None, minor_edits=False):
@@ -209,7 +209,7 @@ class ConfluenceRestApi553(ConfluenceRestApiBase):
         ret = self._create_attachment(url, attachment, comment, minor_edits)
         return ret
 
-    def _create_attachment(self, url, attachment, comment=None, minor_edits=False):
+    def _create_attachment(self, url, attachment, comment=None, minor_edits=False, media_type=None, filename=None):
         headers = {
             'X-Atlassian-Token': 'no-check',
             'Authorization': 'Basic ' + self.auth
@@ -218,5 +218,5 @@ class ConfluenceRestApi553(ConfluenceRestApiBase):
         params_map = {'comment': comment, 'minorEdit': minor_edits}
         params = self._build_params(params_map)
 
-        ret = self._post(url, files={'file': attachment}, data=params, headers=headers)
+        ret = self._post(url, files={'file': (filename, attachment, media_type)}, data=params, headers=headers)
         return ret

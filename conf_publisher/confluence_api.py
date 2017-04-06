@@ -1,5 +1,4 @@
 import requests
-from requests.auth import HTTPBasicAuth
 from . import log
 from .constants import DEFAULT_CONFLUENCE_API_VERSION
 
@@ -14,8 +13,7 @@ def create_confluence_api(version, url, auth):
     if confluence_api_class is None:
         raise NotImplementedError('This API Version is not implemented')
 
-    auth_instance = HTTPBasicAuth(*auth)
-    confluence_api = confluence_api_class(url, auth_instance)
+    confluence_api = confluence_api_class(url, auth)
 
     return confluence_api
 
@@ -218,5 +216,5 @@ class ConfluenceRestApi553(ConfluenceRestApiBase):
         params_map = {'comment': comment, 'minorEdit': minor_edits}
         params = self._build_params(params_map)
 
-        ret = self._post(url, files={'file': attachment}, data=params, auth=self.auth, headers=headers)
+        ret = self._post(url, files={'file': attachment}, data=params, headers=headers)
         return ret

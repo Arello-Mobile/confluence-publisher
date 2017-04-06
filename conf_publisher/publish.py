@@ -191,6 +191,7 @@ def main():
     confluence_api = create_confluence_api(DEFAULT_CONFLUENCE_API_VERSION, config.url, auth)
     publisher = create_publisher(config, confluence_api)
     publisher.publish(args.force, args.watermark, args.hold_titles)
+    log.info('Complete!')
 
 if __name__ == '__main__':
     main()

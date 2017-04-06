@@ -1,6 +1,5 @@
 import yaml
 from collections import OrderedDict
-import six
 
 
 class OrderedDumper(yaml.Dumper):
@@ -8,7 +7,7 @@ class OrderedDumper(yaml.Dumper):
 
 
 def _dict_representer(dumper, data):
-    return dumper.represent_dict(six.iteritems(data))
+    return dumper.represent_dict(data.items())
 
 OrderedDumper.add_representer(OrderedDict, _dict_representer)
 

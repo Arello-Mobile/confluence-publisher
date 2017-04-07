@@ -24,6 +24,9 @@ class SphinxFJsonDataProviderTestCase(TestCase):
         self.assertEqual(expected, result)
 
     def test_get_attachment(self):
-        result = SphinxFJsonDataProvider(root_dir=self.tests_root, base_dir='fixtures').get_attachment('test_download.txt')
+        result = SphinxFJsonDataProvider(
+            root_dir=self.tests_root,
+            base_dir='fixtures'
+        ).get_attachment('test_download.txt')
         expected = os.path.join(self.tests_root, 'fixtures/_downloads/test_download.txt')
         self.assertEqual(expected, result)

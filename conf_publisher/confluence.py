@@ -1,12 +1,18 @@
 import os
 import copy
+import mimetypes
+from collections import namedtuple
 from operator import attrgetter
-import urllib, mimetypes
 
 try:
     from lxml import etree
 except ImportError:
     import xml.etree.ElementTree as etree
+
+try:
+    from urllib import pathname2url
+except ImportError:
+    from urllib.request import pathname2url
 
 
 class Content(object):
@@ -161,25 +167,28 @@ class ConfluencePageManager(ConfluenceManager):
         return payload
 
 
+AttachmentFile = namedtuple('attachment_file', [
+    'filename',
+    'attachment',
+    'media_type'
+])
+
+
 class AttachmentPublisher(ConfluenceManager):
     def publish(self, content_id, filepath):
-        attachments = self._api.list_attachments(content_id)
+        attachments = self._get_page_metadata(content_id)
         filename = os.path.basename(filepath)
 
-        attachmentsTitles = []
-        for a in attachments:
-            if a.get('title', None) is not None:
-                attachmentsTitles.append(a['title'])
-
-        if filename in attachmentsTitles:
+        if filename in map(attrgetter('title'), attachments):
             # TODO: fixme. skipping if file already exists. its ugly hack
             return
 
-        url = urllib.pathname2url(filename)
-        media_type = mimetypes.guess_type(url)
+        url = pathname2url(filename)
+        media_type, encoding = mimetypes.guess_type(url)
 
-        with open(filepath, 'rb') as f:
-            self._api.create_attachment(content_id, f, media_type=media_type, filename=filename)
+        with open(filepath, 'rb') as file_:
+            attachment_file = AttachmentFile(filename, file_, media_type)
+            self._api.create_attachment(content_id, attachment_file)
 
     @staticmethod
     def _parse_attachments(data):

@@ -1,6 +1,7 @@
 import os
 import copy
 from operator import attrgetter
+import urllib, mimetypes
 
 try:
     from lxml import etree
@@ -162,15 +163,23 @@ class ConfluencePageManager(ConfluenceManager):
 
 class AttachmentPublisher(ConfluenceManager):
     def publish(self, content_id, filepath):
-        attachments = self._get_page_metadata(content_id)
+        attachments = self._api.list_attachments(content_id)
         filename = os.path.basename(filepath)
 
-        if filename in map(attrgetter('title'), attachments):
+        attachmentsTitles = []
+        for a in attachments:
+            if a.get('title', None) is not None:
+                attachmentsTitles.append(a['title'])
+
+        if filename in attachmentsTitles:
             # TODO: fixme. skipping if file already exists. its ugly hack
             return
 
+        url = urllib.pathname2url(filename)
+        media_type = mimetypes.guess_type(url)
+
         with open(filepath, 'rb') as f:
-            self._api.create_attachment(content_id, f)
+            self._api.create_attachment(content_id, f, media_type=media_type, filename=filename)
 
     @staticmethod
     def _parse_attachments(data):

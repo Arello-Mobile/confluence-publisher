@@ -118,6 +118,7 @@ optional arguments:
   -U USER, --user USER  Username (prompt password)
   -o OUTPUT, --output OUTPUT
                         Output file|stdout|stderr
+  -v, --verbose
 ```
 
 

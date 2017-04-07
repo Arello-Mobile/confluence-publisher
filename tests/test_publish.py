@@ -85,7 +85,7 @@ class FakeEnv(object):
 
 
 class PublisherTestCase(TestCase):
-    #maxDiff = None
+    # maxDiff = None
     @classmethod
     def set_fixtures(cls):
         cls.title = u'pageTitle'

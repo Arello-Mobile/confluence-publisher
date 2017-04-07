@@ -1,8 +1,9 @@
 from unittest import TestCase
 
+import os
 from conf_publisher.page_maker import make_page, make_pages
 from conf_publisher.confluence import Page
-from conf_publisher.config import ConfigLoader
+from conf_publisher.config import ConfigLoader, ConfigDumper
 
 
 class FakeConfluencePageManager(object):
@@ -30,7 +31,7 @@ class FakeConfluencePageManager(object):
             page.version_number += 1
         self._pages[page.id] = page
         return page.id
-    
+
 
 def make_page_fixture(page_id=None, title=None, body=None, space_key='TEST'):
     p = Page()
@@ -90,3 +91,35 @@ class PageMakerTestCase(TestCase):
 
         make_pages(config, page_manager, parent_id=40000000)
         self.assertTrue(40000001 in page_manager._pages)
+
+    def test_dump_config(self):
+        expected = [
+            'version: 2\n',
+            'base_dir: fixtures\n',
+            'pages:\n',
+            '- id: 40000000\n',
+            '  title: parent page\n',
+            '  pages:\n',
+            '  - title: child page\n'
+        ]
+        config = ConfigLoader.from_dict({
+            'version': 2,
+            'base_dir': 'fixtures',
+            'pages': [
+                {
+                    'id': 40000000,
+                    'title': 'parent page',
+                    'pages': [
+                        {
+                            'title': 'child page',
+                        }
+                    ]
+                }
+            ]
+        })
+        ConfigDumper.to_yaml_file(config, 'test_cfg.yaml')
+        with open('test_cfg.yaml') as cfg:
+            data = cfg.readlines()
+        os.remove('test_cfg.yaml')
+        self.assertEqual(expected, data)
+

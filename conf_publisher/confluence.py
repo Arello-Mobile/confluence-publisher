@@ -176,24 +176,26 @@ AttachmentFile = namedtuple('attachment_file', [
 
 class AttachmentPublisher(ConfluenceManager):
     def publish(self, content_id, filepath):
-        attachments = self._get_page_metadata(content_id)
-        filename = os.path.basename(filepath)
+        attachments = self._get_page_attachments(content_id)
+        attachment_file = self._read_file(filepath)
 
-        if filename in map(attrgetter('title'), attachments):
-            # TODO: fixme. skipping if file already exists. its ugly hack
-            return
-
-        url = pathname2url(filename)
-        media_type, encoding = mimetypes.guess_type(url)
-
-        with open(filepath, 'rb') as file_:
-            attachment_file = AttachmentFile(filename, file_, media_type)
+        if attachment_file.filename in map(attrgetter('title'), attachments):
+            original_attachment = next(filter(lambda x: x.title == attachment_file.filename, attachments))
+            self._api.update_attachment_data(content_id, original_attachment.id, attachment_file)
+        else:
             self._api.create_attachment(content_id, attachment_file)
+
+    def _get_page_attachments(self, content_id):
+        data = self._api.list_attachments(content_id)
+
+        page_attachments = self._parse_attachments(data)
+
+        return page_attachments
 
     @staticmethod
     def _parse_attachments(data):
         attachments = []
-        for attachment_data in data['children']['attachment']['results']:
+        for attachment_data in data['results']:
             media_type = attachment_data['metadata']['mediaType']
             attachment_class = ImageAttachement if 'image' in media_type else DownloadAttachement
             attachment = attachment_class()
@@ -205,12 +207,14 @@ class AttachmentPublisher(ConfluenceManager):
 
         return attachments
 
-    def _get_page_metadata(self, content_id):
-        data = self._api.get_content(content_id, 'children.attachment')
-
-        page_attachments = self._parse_attachments(data)
-
-        return page_attachments
+    @staticmethod
+    def _read_file(filepath):
+        filename = os.path.basename(filepath)
+        url_ = pathname2url(filename)
+        media_type, encoding = mimetypes.guess_type(url_)
+        with open(filepath, 'rb') as file_:
+            new_attachment_file = AttachmentFile(filename, file_.read(), media_type)
+        return new_attachment_file
 
 
 class PageBodyComparator(object):

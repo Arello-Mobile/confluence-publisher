@@ -3,7 +3,7 @@ from . import log
 from .constants import DEFAULT_CONFLUENCE_API_VERSION
 
 
-def create_confluence_api(version, url, auth):
+def create_confluence_api(version, url, session):
     # Documentation for different REST API versions: https://docs.atlassian.com/confluence/REST/
 
     confluence_api_class = None
@@ -13,7 +13,7 @@ def create_confluence_api(version, url, auth):
     if confluence_api_class is None:
         raise NotImplementedError('This API Version is not implemented')
 
-    confluence_api = confluence_api_class(url, auth)
+    confluence_api = confluence_api_class(url, session)
 
     return confluence_api
 
@@ -21,21 +21,12 @@ def create_confluence_api(version, url, auth):
 class ConfluenceRestApiBase(object):
     api_path = 'rest/api'
 
-    def __init__(self, url, auth):
+    def __init__(self, url, session):
         self.confluence_url = url.rstrip('/')
-        self.auth = auth
+        self.session = session
         self.headers = {
             'content-type': 'application/json',
         }
-        # Basic HTTP authentication will use the encoded user:pass which is a string,
-        # otherwise, parse_authentication created a requests.Session object.
-        if isinstance(auth, basestring):
-            log.debug('Using Basic HTTP authentication')
-            self.headers['Authorization'] = 'Basic ' + auth
-            self.session = None
-        else:
-            log.debug('Using session authentication')
-            self.session = auth
 
     @staticmethod
     def _build_params(params_map):
@@ -46,23 +37,15 @@ class ConfluenceRestApiBase(object):
         return '/'.join([self.confluence_url, self.api_path] + parts)
 
     def _get(self, url, **kwargs):
-        if self.session is None:
-            return self._request(requests.get, url, **kwargs)
         return self._request(self.session.get, url, **kwargs)
 
     def _post(self, url, _json=None, **kwargs):
-        if self.session is None:
-            return self._request(requests.post, url, json=_json, **kwargs)
         return self._request(self.session.post, url, json=_json, **kwargs)
 
     def _put(self, url, _json=None, **kwargs):
-        if self.session is None:
-            return self._request(requests.put, url, json=_json, **kwargs)
         return self._request(self.session.put, url, json=_json, **kwargs)
 
     def _delete(self, url, **kwargs):
-        if self.session is None:
-            return self._request(requests.delete, url, **kwargs)
         return self._request(self.session.delete, url, **kwargs)
 
     def _request(self, requester, url, **kwargs):
@@ -72,7 +55,7 @@ class ConfluenceRestApiBase(object):
         log.debug('Request URL: %s', url)
         log.debug('Request Arguments: %s', kwargs)
 
-        r = requester(url, auth=self.auth, **kwargs)
+        r = requester(url, **kwargs)
         if r.status_code != requests.codes.ok:
             log.error(r.content)
             r.raise_for_status()
@@ -229,8 +212,6 @@ class ConfluenceRestApi553(ConfluenceRestApiBase):
         headers = {
             'X-Atlassian-Token': 'no-check',
         }
-        if self.session is None:
-            headers['Authorization'] = 'Basic ' + self.auth
 
         params_map = {'comment': comment, 'minorEdit': minor_edits}
         params = self._build_params(params_map)

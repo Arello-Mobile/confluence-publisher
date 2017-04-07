@@ -2,8 +2,7 @@ from sys import version_info
 from getpass import getpass
 from base64 import b64encode, b64decode
 from requests.auth import HTTPBasicAuth, AuthBase
-
-import requests
+from requests import Session
 
 PY3 = version_info.major >= 3
 
@@ -36,14 +35,13 @@ class HTTPBasicAuthWithToken(AuthBase):
         return r
 
 
-def parse_authentication(auth=None, user=None, auth_type="basic"):
+def parse_authentication(auth=None, user=None):
+    session = Session()
+
     if user is not None:
         password = getpass('Enter Confluence password:')
-        if auth_type == "basic":
-            return HTTPBasicAuth(user, password)
-        else:
-            s = requests.Session()
-            s.auth = (user, password)
-            return s
+        session.auth = HTTPBasicAuth(user, password)
+    else:
+        session.auth = HTTPBasicAuthWithToken(auth)
 
-    return HTTPBasicAuthWithToken(auth)
+    return session

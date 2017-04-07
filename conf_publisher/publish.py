@@ -172,17 +172,18 @@ def main():
     auth_group = parser.add_mutually_exclusive_group(required=True)
     auth_group.add_argument('-a', '--auth', type=str, help='Base64 encoded user:password string')
     auth_group.add_argument('-U', '--user', type=str, help='Username (prompt password)')
-    parser.add_argument('-t', '--auth-type', choices=['basic', 'session'], help='Use "session" for servers with Basic HTTP disabled')
     parser.add_argument('-F', '--force', action='store_true', help='Publish not changed page.')
     parser.add_argument('-w', '--watermark', type=str, help='Overrides the watermarks. Also can be "False" to remove '
                                                             'all watermarks; or "True" to add watermarks'
-                                                            'with default text: "{}" on all pages.'.format(DEFAULT_WATERMARK_CONTENT))
-    parser.add_argument('-l', '--link', type=str, help='Overrides page link. If value is "False" then removes the link.')
+                                                            'with default text: "{}" on all pages.'
+                                                            .format(DEFAULT_WATERMARK_CONTENT))
+    parser.add_argument('-l', '--link', type=str, help="Overrides page link. If value is \"False\" "
+                                                       "then removes the link.")
     parser.add_argument('-ht', '--hold-titles', action='store_true', help='Do not change page titles while publishing.')
     parser.add_argument('-v', '--verbose', action='count')
 
     args = parser.parse_args()
-    auth = parse_authentication(args.auth, args.user, args.auth_type)
+    auth = parse_authentication(args.auth, args.user)
     setup_logger(args.verbose)
 
     config = ConfigLoader.from_yaml(args.config)

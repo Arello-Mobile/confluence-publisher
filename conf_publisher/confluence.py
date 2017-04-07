@@ -249,6 +249,8 @@ class PageBodyComparator(object):
         # http://stackoverflow.com/questions/7237466/python-elementtree-support-for-parsing-unknown-xml-entities
         parser = etree.XMLParser()
         parser.entity['nbsp'] = 'nbsp'
+        parser.entity['ldquo'] = 'ldquo'
+        parser.entity['rdquo'] = 'rdquo'
         return parser
 
     @classmethod

@@ -180,7 +180,11 @@ class AttachmentPublisher(ConfluenceManager):
         attachment_file = self._read_file(filepath)
 
         if attachment_file.filename in map(attrgetter('title'), attachments):
-            original_attachment = next(filter(lambda x: x.title == attachment_file.filename, attachments))
+            original_attachment = next(
+                iter(
+                    filter(lambda x: x.title == attachment_file.filename, attachments)
+                )
+            )
             self._api.update_attachment_data(content_id, original_attachment.id, attachment_file)
         else:
             self._api.create_attachment(content_id, attachment_file)

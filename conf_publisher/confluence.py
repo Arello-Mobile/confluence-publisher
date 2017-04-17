@@ -1,4 +1,5 @@
 import os
+import re
 import copy
 import mimetypes
 from collections import namedtuple
@@ -13,6 +14,8 @@ try:
     from urllib import pathname2url
 except ImportError:
     from urllib.request import pathname2url
+
+from . import log
 
 
 class Content(object):
@@ -69,10 +72,14 @@ class Page(Content):
 
         del first['body']
         del second['body']
-        if not PageBodyComparator.is_equal(self.body, other.body):
-            return False
 
-        return first == second
+        is_body_eq = False
+        try:
+            is_body_eq = PageBodyComparator.is_equal(self.body, other.body)
+        except Exception as err:
+            log.warning('WARNING Can\'t compare {} and {} {}'.format(self.title, other.title, err))
+
+        return is_body_eq and (first == second)
 
 
 class Ancestor(Content):
@@ -221,6 +228,44 @@ class AttachmentPublisher(ConfluenceManager):
         return new_attachment_file
 
 
+class AllEntitiesXMLParser(object):
+    # http://stackoverflow.com/questions/7237466/python-elementtree-support-for-parsing-unknown-xml-entities
+    known_entity = {
+        'nbsp': 'nbsp',
+        'ldquo': 'ldquo',
+        'rdquo': 'rdquo'
+    }
+
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        self._original_parser = None
+
+    def _init_parser(self):
+        self._original_parser = etree.XMLParser(*self.args, **self.kwargs)
+        self._original_parser.entity.update(self.known_entity)
+
+    def feed(self, data):
+        self._init_parser()
+        try:
+            return self._original_parser.feed(data)
+        except etree.ParseError as _err:
+            str_err = str(_err)
+            # fix unknown entity
+            if 'undefined entity' in str_err:
+                log.warning('WARNING {}'.format(str_err))
+                entity = re.search(r'&\w+;', str_err)
+                if entity:
+                    raw_entity = entity.group()[1:-1]
+                    self.known_entity[raw_entity] = raw_entity
+                    return self.feed(data)
+            raise _err
+
+    def close(self):
+        if self._original_parser is not None:
+            return self._original_parser.close()
+
+
 class PageBodyComparator(object):
 
     @classmethod
@@ -249,12 +294,7 @@ class PageBodyComparator(object):
             return etree.HTMLParser()
 
         # or xml.etree.ElementTree.XMLParser
-        # fix unknown entity
-        # http://stackoverflow.com/questions/7237466/python-elementtree-support-for-parsing-unknown-xml-entities
-        parser = etree.XMLParser()
-        parser.entity['nbsp'] = 'nbsp'
-        parser.entity['ldquo'] = 'ldquo'
-        parser.entity['rdquo'] = 'rdquo'
+        parser = AllEntitiesXMLParser()
         return parser
 
     @classmethod
